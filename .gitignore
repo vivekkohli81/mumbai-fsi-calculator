@@ -1,0 +1,10 @@
+# Source files (too large for GitHub)
+*.pdf
+*.pptx
+
+# Claude config
+.claude/
+
+# OS files
+Thumbs.db
+.DS_Store

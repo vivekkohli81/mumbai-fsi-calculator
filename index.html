@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mumbai FSI Calculator | DCPR 2034</title>
+<style>
+:root {
+  --primary: #1E2761;
+  --accent: #3B5998;
+  --highlight: #F96167;
+  --bg: #F5F6FA;
+  --card: #FFFFFF;
+  --text: #2C3E50;
+  --muted: #7F8C8D;
+  --border: #E0E4EC;
+  --green: #27AE60;
+  --orange: #F39C12;
+  --red: #E74C3C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white; padding: 24px 0; text-align: center;
+}
+.header h1 { font-size: 28px; font-weight: 700; }
+.header p { opacity: 0.85; font-size: 14px; margin-top: 4px; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+.input-section {
+  background: var(--card); border-radius: 12px; padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
+}
+.input-section h2 { color: var(--primary); margin-bottom: 20px; font-size: 20px; border-bottom: 2px solid var(--highlight); padding-bottom: 8px; display: inline-block; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-weight: 600; margin-bottom: 6px; font-size: 13px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+.form-group select, .form-group input {
+  padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px;
+  font-size: 15px; transition: border-color 0.2s; background: white;
+}
+.form-group select:focus, .form-group input:focus { border-color: var(--accent); outline: none; }
+.form-group .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.btn-calculate {
+  background: linear-gradient(135deg, var(--highlight), #E74C3C);
+  color: white; border: none; padding: 14px 48px; border-radius: 8px;
+  font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px;
+  transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.5px;
+}
+.btn-calculate:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(249,97,103,0.4); }
+
+.results { display: none; }
+.results.visible { display: block; }
+
+.result-card {
+  background: var(--card); border-radius: 12px; padding: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px;
+}
+.result-card h3 {
+  color: var(--primary); font-size: 18px; margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--border);
+}
+.result-card h3 .card-num {
+  background: var(--highlight); color: white; display: inline-block;
+  width: 28px; height: 28px; border-radius: 50%; text-align: center;
+  line-height: 28px; font-size: 14px; margin-right: 8px;
+}
+
+table.calc-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+table.calc-table th {
+  background: var(--primary); color: white; padding: 10px 14px;
+  text-align: left; font-weight: 600;
+}
+table.calc-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+table.calc-table tr:nth-child(even) { background: #F8F9FD; }
+table.calc-table tr.total-row { background: #EBF5FB; font-weight: 700; }
+table.calc-table tr.total-row td { border-top: 2px solid var(--primary); }
+table.calc-table tr.subtotal-row { background: #FEF9E7; font-weight: 600; }
+table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.premium-card { border-left: 4px solid var(--orange); }
+.timeline-card { border-left: 4px solid var(--green); }
+.summary-badge {
+  display: inline-block; background: var(--primary); color: white;
+  padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; margin: 2px;
+}
+
+.info-box {
+  background: #FEF9E7; border: 1px solid #F9E79F; border-radius: 8px;
+  padding: 14px 18px; margin-top: 12px; font-size: 13px;
+}
+.info-box strong { color: var(--orange); }
+
+.note-box {
+  background: #EBF5FB; border: 1px solid #AED6F1; border-radius: 8px;
+  padding: 14px 18px; margin-top: 12px; font-size: 13px;
+}
+.note-box strong { color: var(--accent); }
+
+.disclaimer {
+  text-align: center; font-size: 12px; color: var(--muted); margin-top: 32px;
+  padding: 16px; border-top: 1px solid var(--border);
+}
+
+.scheme-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: 12px; font-weight: 600; margin-bottom: 8px;
+}
+.scheme-tag.freehold { background: #D5F5E3; color: #1E8449; }
+.scheme-tag.sra { background: #FADBD8; color: #C0392B; }
+.scheme-tag.cessed { background: #FCF3CF; color: #B7950B; }
+.scheme-tag.cluster { background: #D6EAF8; color: #2471A3; }
+.scheme-tag.mhada { background: #E8DAEF; color: #7D3C98; }
+.scheme-tag.ptc { background: #FDEBD0; color: #CA6F1E; }
+.scheme-tag.authority { background: #D5D8DC; color: #2C3E50; }
+
+.hidden { display: none; }
+
+.rr-override-notice {
+  font-size: 11px; color: var(--orange); font-weight: 600; margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .header h1 { font-size: 22px; }
+  .container { padding: 16px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Mumbai FSI & Premium Calculator</h1>
+  <p>DCPR 2034 | DCR 33(2), 33(5), 33(7), 33(9), 33(10), 33(11) | Area Statements, Premium Costs & Payment Timelines</p>
+</div>
+
+<div class="container">
+  <!-- INPUT FORM -->
+  <div class="input-section">
+    <h2>Project Inputs</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>1. Development Scheme</label>
+        <select id="scheme">
+          <option value="">-- Select Scheme --</option>
+          <option value="freehold">Freehold Land Development (DCPR 2034)</option>
+          <option value="sra">SRA - Slum Rehabilitation (DCR 33(10))</option>
+          <option value="cessed">Cessed Building Redevelopment (DCR 33(7))</option>
+          <option value="cluster">Society/Cluster Redevelopment (DCR 33(9))</option>
+          <option value="mhada">MHADA Colony Redevelopment (DCR 33(5))</option>
+          <option value="ptc">PTC - Permanent Transit Camp (DCR 33(11))</option>
+          <option value="authority">Authority/Govt Land (DCR 33(2))</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>2. Location / Zone</label>
+        <select id="zone">
+          <option value="">-- Select Zone --</option>
+          <option value="island">Island City (South Mumbai)</option>
+          <option value="suburbs">Suburbs (Bandra to Dahisar / Kurla to Mulund)</option>
+          <option value="extended">Extended Suburbs (Beyond Dahisar / Mulund)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>3. Road Width (metres)</label>
+        <select id="roadWidth">
+          <option value="">-- Select Road Width --</option>
+          <option value="9">Up to 9.0 M</option>
+          <option value="12">9.0 - 12.0 M</option>
+          <option value="18">12.0 - 18.0 M</option>
+          <option value="27">18.0 - 27.0 M</option>
+          <option value="30">27.0 M & Above</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>4. Plot Area (sq. metres)</label>
+        <input type="number" id="plotArea" placeholder="e.g. 1000" min="1">
+        <span class="hint">Gross plot area in sq. metres</span>
+      </div>
+
+      <div class="form-group">
+        <label>5. Ward / Location</label>
+        <select id="ward">
+          <option value="">-- Select Ward / Location --</option>
+          <optgroup label="Island City">
+            <option value="A">A Ward - Fort, CST, Colaba</option>
+            <option value="B">B Ward - Sandhurst Road, Mandvi, Bhuleshwar</option>
+            <option value="C">C Ward - Marine Lines, Kalbadevi, Girgaon</option>
+            <option value="D">D Ward - Malabar Hill, Grant Road, Breach Candy</option>
+            <option value="E">E Ward - Byculla, Mazgaon, Reay Road</option>
+            <option value="F/S">F/South Ward - Parel, Sewri, Lower Parel</option>
+            <option value="F/N">F/North Ward - Matunga, Wadala, Sion</option>
+            <option value="G/S">G/South Ward - Worli, Prabhadevi, Haji Ali</option>
+            <option value="G/N">G/North Ward - Dadar, Mahim, Shivaji Park</option>
+          </optgroup>
+          <optgroup label="Western Suburbs">
+            <option value="H/W">H/West Ward - Bandra West, Pali Hill</option>
+            <option value="H/E">H/East Ward - Bandra East, BKC</option>
+            <option value="K/W">K/West Ward - Andheri West, Versova, Lokhandwala</option>
+            <option value="K/E">K/East Ward - Andheri East, MIDC, Marol</option>
+            <option value="P/S">P/South Ward - Goregaon</option>
+            <option value="P/N">P/North Ward - Malad, Marve</option>
+            <option value="R/S">R/South Ward - Kandivali</option>
+            <option value="R/C">R/Central Ward - Borivali</option>
+            <option value="R/N">R/North Ward - Dahisar</option>
+          </optgroup>
+          <optgroup label="Eastern Suburbs">
+            <option value="L">L Ward - Kurla, Vidyavihar</option>
+            <option value="M/W">M/West Ward - Chembur, Tilak Nagar</option>
+            <option value="M/E">M/East Ward - Deonar, Govandi</option>
+            <option value="N">N Ward - Ghatkopar</option>
+            <option value="S">S Ward - Bhandup, Vikhroli, Kanjurmarg</option>
+            <option value="T">T Ward - Mulund</option>
+          </optgroup>
+          <option value="custom">Other Location (type below)</option>
+        </select>
+        <span class="hint">Auto-fills RR rate; select "Other" to type a custom location</span>
+      </div>
+
+      <div class="form-group" id="customLocationGroup" style="display:none;">
+        <label>Custom Location Name</label>
+        <input type="text" id="customLocation" placeholder="e.g. Powai, Nahur, Vikhroli East">
+        <span class="hint">Type your locality if not listed in the dropdown above</span>
+      </div>
+
+      <div class="form-group">
+        <label>6. Ready Reckoner Rate (Rs/sq.m)</label>
+        <div style="position:relative;">
+          <input type="number" id="rrRate" placeholder="e.g. 50000" min="1" style="padding-right:60px;">
+          <span id="rrAutoTag" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:#D5F5E3; color:#1E8449; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">AUTO</span>
+        </div>
+        <span class="hint" id="rrHint">ASR / Annual Statement of Rates for FSI 1.0 (land rate)</span>
+        <div id="rrRangeInfo" style="display:none; margin-top:4px; padding:6px 10px; background:#EBF5FB; border-radius:6px; font-size:12px; color:#2471A3;">
+          <span id="rrRangeText"></span>
+          <span style="display:block; margin-top:2px; color:#7F8C8D; font-size:11px;">Indicative range (FY 2025-26). You can override with your actual rate.</span>
+        </div>
+      </div>
+
+      <div class="form-group" id="tenantsGroup">
+        <label>7. Number of Tenants / Existing Units</label>
+        <input type="number" id="tenants" placeholder="e.g. 50" min="0">
+        <span class="hint">Existing tenants for rehab (SRA/Cessed/Cluster/MHADA)</span>
+      </div>
+
+      <div class="form-group" id="tenantAreaGroup">
+        <label>8. Average Existing Carpet Area (sq.m / tenant)</label>
+        <input type="number" id="tenantArea" placeholder="e.g. 25" min="1" value="25">
+        <span class="hint">Current avg carpet area per tenant (sq.m)</span>
+      </div>
+
+      <div class="form-group" id="useTypeGroup">
+        <label>9. Predominant Use Type</label>
+        <select id="useType">
+          <option value="residential">Residential</option>
+          <option value="commercial">Commercial</option>
+          <option value="mixed">Mixed Use</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="compositeGroup" style="display:none;">
+        <label>Composite Redevelopment (33(7))</label>
+        <select id="compositeType">
+          <option value="single">Single Plot</option>
+          <option value="2to5">2-5 Plots Composite</option>
+          <option value="6plus">6+ Plots Composite</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="rcRateGroup" style="display:none;">
+        <label>Rate of Construction (Rs/sq.m)</label>
+        <input type="number" id="rcRate" placeholder="e.g. 25000" min="1">
+        <span class="hint">RC as per ASR (for Basic Ratio calculation)</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <button class="btn-calculate" onclick="calculate()">Calculate FSI, Premiums & Timelines</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+    <div id="summarySection"></div>
+    <div id="areaSection"></div>
+    <div id="premiumSection"></div>
+    <div id="timelineSection"></div>
+    <div id="notesSection"></div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> This calculator is for indicative/educational purposes only based on DCPR 2034 provisions.<br>
+    Verify all figures with the latest official gazette notifications. Consult a qualified professional before making investment decisions.<br>
+    Ready Reckoner rates change annually. Actual premiums may vary based on specific plot conditions, CRZ status, and regulatory amendments.
+  </div>
+</div>
+
+<script>
+// ====== FSI DATA TABLES (DCPR 2034) ======
+const FSI_TABLE = {
+  island: {
+    9:  { base: 1.33, premium: 0.00, tdr: 0.00, total: 1.33 },
+    12: { base: 1.33, premium: 0.50, tdr: 0.17, total: 2.00 },
+    18: { base: 1.33, premium: 0.62, tdr: 0.45, total: 2.40 },
+    27: { base: 1.33, premium: 0.73, tdr: 0.64, total: 2.70 },
+    30: { base: 1.33, premium: 0.84, tdr: 0.83, total: 3.00 }
+  },
+  suburbs: {
+    9:  { base: 1.00, premium: 0.00, tdr: 0.00, total: 1.00 },
+    12: { base: 1.00, premium: 0.50, tdr: 0.50, total: 2.00 },
+    18: { base: 1.00, premium: 0.50, tdr: 0.70, total: 2.20 },
+    27: { base: 1.00, premium: 0.50, tdr: 0.90, total: 2.40 },
+    30: { base: 1.00, premium: 0.50, tdr: 1.00, total: 2.50 }
+  },
+  extended: {
+    9:  { base: 1.00, premium: 0.00, tdr: 0.00, total: 1.00 },
+    12: { base: 1.00, premium: 0.50, tdr: 0.50, total: 2.00 },
+    18: { base: 1.00, premium: 0.50, tdr: 0.70, total: 2.20 },
+    27: { base: 1.00, premium: 0.50, tdr: 0.90, total: 2.40 },
+    30: { base: 1.00, premium: 0.50, tdr: 1.00, total: 2.50 }
+  }
+};
+
+// Scheme-specific FSI caps
+const SCHEME_FSI = {
+  sra:       { maxFSI: 4.00, label: 'SRA 33(10)', fungibleFree: true },
+  cessed:    { maxFSI: 3.00, label: 'Cessed 33(7)', fungibleFree: true },
+  cluster:   { maxFSI: 4.00, label: 'Cluster 33(9)', fungibleFree: true },
+  mhada:     { maxFSI: 4.00, label: 'MHADA 33(5)', fungibleFree: true },
+  ptc:       { maxFSI: 4.00, label: 'PTC 33(11)', fungibleFree: false },
+  authority: { maxFSI: 5.00, label: 'Authority 33(2)', fungibleFree: false },
+  freehold:  { maxFSI: null, label: 'Freehold DCPR 2034', fungibleFree: false }
+};
+
+// Incentive percentages for cessed 33(7)
+const CESSED_INCENTIVE = { single: 0.50, '2to5': 0.60, '6plus': 0.70 };
+
+// Sale component ratios for SRA
+const SRA_SALE_RATIO = { island: 0.75, suburbs: 1.00, extended: 1.33 };
+
+// PTC split
+const PTC_SPLIT = { island: { tenement: 0.37, sale: 0.63 }, suburbs: { tenement: 0.50, sale: 0.50 }, extended: { tenement: 0.50, sale: 0.50 } };
+
+// ====== READY RECKONER RATES BY WARD (FY 2025-26, Rs/sq.m, land rate for FSI 1) ======
+// Source: IGR Maharashtra ASR 2025-26, ghar.tv, e-stampdutyreadyreckoner.com
+// These are indicative mid-range values; actual rates vary by sub-zone/CTS number
+const RR_RATES = {
+  // Island City
+  'A':   { residential: 325000, commercial: 475000, min: 300000, max: 650000, zone: 'island', areas: 'Fort, CST, Colaba, Cuffe Parade, Marine Drive' },
+  'B':   { residential: 195000, commercial: 310000, min: 150000, max: 250000, zone: 'island', areas: 'Sandhurst Road, Mandvi, Bhuleshwar, Pydhonie' },
+  'C':   { residential: 215000, commercial: 340000, min: 180000, max: 280000, zone: 'island', areas: 'Marine Lines, Kalbadevi, Girgaon, Charni Road' },
+  'D':   { residential: 340000, commercial: 450000, min: 250000, max: 430000, zone: 'island', areas: 'Malabar Hill, Grant Road, Breach Candy, Kemps Corner' },
+  'E':   { residential: 140000, commercial: 220000, min: 100000, max: 190000, zone: 'island', areas: 'Byculla, Mazgaon, Reay Road, Nagpada' },
+  'F/S': { residential: 210000, commercial: 340000, min: 160000, max: 350000, zone: 'island', areas: 'Parel, Sewri, Lower Parel, Elphinstone' },
+  'F/N': { residential: 155000, commercial: 240000, min: 120000, max: 190000, zone: 'island', areas: 'Matunga, Wadala, Sion, GTB Nagar' },
+  'G/S': { residential: 300000, commercial: 450000, min: 200000, max: 600000, zone: 'island', areas: 'Worli, Prabhadevi, Haji Ali, Worli Sea Face' },
+  'G/N': { residential: 170000, commercial: 270000, min: 140000, max: 220000, zone: 'island', areas: 'Dadar, Mahim, Shivaji Park' },
+  // Western Suburbs
+  'H/W': { residential: 215000, commercial: 350000, min: 190000, max: 250000, zone: 'suburbs', areas: 'Bandra West, Pali Hill, Carter Road, Bandstand' },
+  'H/E': { residential: 160000, commercial: 270000, min: 130000, max: 200000, zone: 'suburbs', areas: 'Bandra East, BKC, Kalanagar' },
+  'K/W': { residential: 130000, commercial: 210000, min: 100000, max: 160000, zone: 'suburbs', areas: 'Andheri West, Versova, Lokhandwala, Juhu' },
+  'K/E': { residential: 105000, commercial: 175000, min: 85000,  max: 130000, zone: 'suburbs', areas: 'Andheri East, MIDC, Marol, Chakala' },
+  'P/S': { residential: 95000,  commercial: 155000, min: 80000,  max: 120000, zone: 'suburbs', areas: 'Goregaon East & West, Aarey, Film City' },
+  'P/N': { residential: 90000,  commercial: 145000, min: 75000,  max: 115000, zone: 'suburbs', areas: 'Malad East & West, Marve, Madh' },
+  'R/S': { residential: 85000,  commercial: 135000, min: 70000,  max: 110000, zone: 'suburbs', areas: 'Kandivali East & West, Samata Nagar' },
+  'R/C': { residential: 80000,  commercial: 130000, min: 65000,  max: 100000, zone: 'suburbs', areas: 'Borivali East & West, Gorai' },
+  'R/N': { residential: 70000,  commercial: 110000, min: 55000,  max: 90000,  zone: 'suburbs', areas: 'Dahisar East & West' },
+  // Eastern Suburbs
+  'L':   { residential: 100000, commercial: 165000, min: 80000,  max: 120000, zone: 'suburbs', areas: 'Kurla East & West, Vidyavihar' },
+  'M/W': { residential: 95000,  commercial: 155000, min: 75000,  max: 115000, zone: 'suburbs', areas: 'Chembur, Tilak Nagar, Sion East' },
+  'M/E': { residential: 65000,  commercial: 100000, min: 50000,  max: 85000,  zone: 'suburbs', areas: 'Deonar, Govandi, Mankhurd' },
+  'N':   { residential: 85000,  commercial: 140000, min: 70000,  max: 105000, zone: 'suburbs', areas: 'Ghatkopar East & West, Pant Nagar' },
+  'S':   { residential: 65000,  commercial: 105000, min: 50000,  max: 85000,  zone: 'suburbs', areas: 'Bhandup, Vikhroli, Kanjurmarg, Powai' },
+  'T':   { residential: 75000,  commercial: 120000, min: 60000,  max: 95000,  zone: 'suburbs', areas: 'Mulund East & West, Nahur' }
+};
+
+function fmt(n) { return n.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }); }
+function fmtInt(n) { return n.toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
+function fmtCr(n) {
+  if (n >= 10000000) return 'Rs. ' + (n / 10000000).toFixed(2) + ' Cr';
+  if (n >= 100000) return 'Rs. ' + (n / 100000).toFixed(2) + ' Lakh';
+  return 'Rs. ' + fmtInt(n);
+}
+function sqmToSqft(sqm) { return sqm * 10.764; }
+
+// ====== AUTO-POPULATE RR RATE ON WARD CHANGE ======
+let rrAutoFilled = false;
+
+document.getElementById('ward').addEventListener('change', function() {
+  const ward = this.value;
+  const customGroup = document.getElementById('customLocationGroup');
+  const rrInput = document.getElementById('rrRate');
+  const autoTag = document.getElementById('rrAutoTag');
+  const rangeInfo = document.getElementById('rrRangeInfo');
+  const rangeText = document.getElementById('rrRangeText');
+
+  // Show/hide custom location field
+  customGroup.style.display = ward === 'custom' ? 'flex' : 'none';
+
+  if (ward && ward !== 'custom' && RR_RATES[ward]) {
+    const data = RR_RATES[ward];
+    const useType = document.getElementById('useType').value;
+    const rate = useType === 'commercial' ? data.commercial : data.residential;
+
+    // Auto-fill RR rate
+    rrInput.value = rate;
+    rrAutoFilled = true;
+    autoTag.textContent = 'AUTO';
+    autoTag.style.background = '#D5F5E3';
+    autoTag.style.color = '#1E8449';
+    autoTag.style.display = 'inline-block';
+
+    // Show range info
+    rangeInfo.style.display = 'block';
+    rangeText.innerHTML = '<strong>' + data.areas + '</strong><br>' +
+      'Residential: Rs ' + fmtInt(data.min) + ' - ' + fmtInt(data.max) + '/sq.m | ' +
+      'Commercial: Rs ' + fmtInt(data.commercial) + '/sq.m (mid-range)' +
+      '<br>Auto-filled: <strong>Rs ' + fmtInt(rate) + '/sq.m</strong> (' + useType + ')';
+
+    // Auto-set zone based on ward's actual zone
+    document.getElementById('zone').value = data.zone;
+  } else {
+    autoTag.style.display = 'none';
+    rangeInfo.style.display = 'none';
+  }
+});
+
+// Update RR rate when use type changes (if ward is selected)
+document.getElementById('useType').addEventListener('change', function() {
+  const ward = document.getElementById('ward').value;
+  if (ward && ward !== 'custom' && RR_RATES[ward]) {
+    const data = RR_RATES[ward];
+    const useType = this.value;
+    const rate = useType === 'commercial' ? data.commercial : data.residential;
+    const rrInput = document.getElementById('rrRate');
+    const rangeText = document.getElementById('rrRangeText');
+    const autoTag = document.getElementById('rrAutoTag');
+
+    rrInput.value = rate;
+    rrAutoFilled = true;
+    autoTag.textContent = 'AUTO';
+    autoTag.style.background = '#D5F5E3';
+    autoTag.style.color = '#1E8449';
+    autoTag.style.display = 'inline-block';
+    document.getElementById('rrRangeInfo').style.display = 'block';
+    rangeText.innerHTML = '<strong>' + data.areas + '</strong><br>' +
+      'Residential: Rs ' + fmtInt(data.min) + ' - ' + fmtInt(data.max) + '/sq.m | ' +
+      'Commercial: Rs ' + fmtInt(data.commercial) + '/sq.m (mid-range)' +
+      '<br>Auto-filled: <strong>Rs ' + fmtInt(rate) + '/sq.m</strong> (' + useType + ')';
+  }
+});
+
+// When user manually edits RR rate, remove auto tag
+document.getElementById('rrRate').addEventListener('input', function() {
+  const autoTag = document.getElementById('rrAutoTag');
+  if (rrAutoFilled) {
+    autoTag.textContent = 'CUSTOM';
+    autoTag.style.background = '#FCF3CF';
+    autoTag.style.color = '#B7950B';
+    autoTag.style.display = 'inline-block';
+    rrAutoFilled = false;
+  }
+});
+
+// Show/hide fields based on scheme
+document.getElementById('scheme').addEventListener('change', function() {
+  const s = this.value;
+  document.getElementById('compositeGroup').style.display = s === 'cessed' ? 'flex' : 'none';
+  document.getElementById('rcRateGroup').style.display = (s === 'mhada' || s === 'cluster') ? 'flex' : 'none';
+  const needsTenants = ['sra','cessed','cluster','mhada','ptc'].includes(s);
+  document.getElementById('tenantsGroup').style.display = needsTenants ? 'flex' : 'none';
+  document.getElementById('tenantAreaGroup').style.display = needsTenants ? 'flex' : 'none';
+});
+
+function calculate() {
+  const scheme = document.getElementById('scheme').value;
+  const zone = document.getElementById('zone').value;
+  const roadWidth = document.getElementById('roadWidth').value;
+  const plotArea = parseFloat(document.getElementById('plotArea').value);
+  const rrRate = parseFloat(document.getElementById('rrRate').value);
+  const wardVal = document.getElementById('ward').value;
+  const ward = wardVal === 'custom' ? (document.getElementById('customLocation').value || 'Custom Location') : wardVal;
+  const tenants = parseInt(document.getElementById('tenants').value) || 0;
+  const tenantArea = parseFloat(document.getElementById('tenantArea').value) || 25;
+  const useType = document.getElementById('useType').value;
+  const compositeType = document.getElementById('compositeType').value;
+  const rcRate = parseFloat(document.getElementById('rcRate').value) || 0;
+
+  // Validation
+  if (!scheme || !zone || !roadWidth || !plotArea || !rrRate) {
+    alert('Please fill in all required fields: Scheme, Zone, Road Width, Plot Area, and Ready Reckoner Rate.');
+    return;
+  }
+
+  // Get base FSI data
+  const zoneKey = zone === 'extended' ? 'suburbs' : zone;
+  const fsiData = FSI_TABLE[zoneKey][roadWidth];
+  const fungiblePct = useType === 'residential' ? 0.35 : 0.20;
+  const fungiblePremiumRate = useType === 'residential' ? 0.60 : 0.80;
+
+  let result = {};
+
+  switch(scheme) {
+    case 'freehold': result = calcFreehold(fsiData, plotArea, rrRate, fungiblePct, fungiblePremiumRate, useType, zone); break;
+    case 'sra': result = calcSRA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct); break;
+    case 'cessed': result = calcCessed(fsiData, plotArea, rrRate, tenants, tenantArea, compositeType, fungiblePct); break;
+    case 'cluster': result = calcCluster(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate); break;
+    case 'mhada': result = calcMHADA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate); break;
+    case 'ptc': result = calcPTC(fsiData, plotArea, rrRate, zone, fungiblePct); break;
+    case 'authority': result = calcAuthority(fsiData, plotArea, rrRate, zone, fungiblePct, fungiblePremiumRate, useType); break;
+  }
+
+  renderResults(result, scheme, zone, roadWidth, plotArea, rrRate, ward, useType);
+}
+
+// ====== FREEHOLD CALCULATION ======
+function calcFreehold(fsi, plot, rr, fungPct, fungPremRate, useType, zone) {
+  const baseFSI = fsi.base;
+  const premFSI = fsi.premium;
+  const tdrFSI = fsi.tdr;
+  const totalFSI = fsi.total;
+
+  const baseArea = baseFSI * plot;
+  const premArea = premFSI * plot;
+  const tdrArea = tdrFSI * plot;
+  const subtotal = totalFSI * plot;
+  const fungibleArea = fungPct * baseArea;
+  const totalBuildable = subtotal + fungibleArea;
+
+  // Premiums
+  const premiumFSICost = premArea * rr * 0.60; // 60% of ASR for FSI 1
+  const fungiblePremium = fungibleArea * rr * fungPremRate; // 60% res / 80% comm
+  const devSurcharge = (premArea + tdrArea) * rr * 0.07; // approx development cess
+  const tdrCost = tdrArea * 3500 * 10.764; // ~Rs 3500/sqft market rate for TDR
+
+  return {
+    areaRows: [
+      { component: 'Base FSI', fsi: baseFSI, calc: `${baseFSI} x ${fmtInt(plot)}`, area: baseArea, type: 'normal' },
+      { component: 'Premium FSI (Paid)', fsi: premFSI, calc: `${premFSI} x ${fmtInt(plot)}`, area: premArea, type: 'normal' },
+      { component: 'TDR Loading', fsi: tdrFSI, calc: `${tdrFSI} x ${fmtInt(plot)}`, area: tdrArea, type: 'normal' },
+      { component: 'Subtotal (Base + Premium + TDR)', fsi: totalFSI, calc: '', area: subtotal, type: 'subtotal' },
+      { component: `Fungible FSI (${fungPct*100}% of Base)`, fsi: fungPct, calc: `${fungPct} x ${fmtInt(baseArea)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Premium FSI Cost', formula: `${fmt(premArea)} sq.m x ${fmtInt(rr)} x 60%`, amount: premiumFSICost, note: 'Reg 30: 60% of ASR (for FSI 1)' },
+      { item: `Fungible FSI Premium (${useType})`, formula: `${fmt(fungibleArea)} sq.m x ${fmtInt(rr)} x ${fungPremRate*100}%`, amount: fungiblePremium, note: `Reg 31(3): ${fungPremRate*100}% of ASR` },
+      { item: 'Development Surcharge Cess (approx)', formula: `${fmt(premArea + tdrArea)} sq.m x ${fmtInt(rr)} x 7%`, amount: devSurcharge, note: 'Approx 7% of land rate, per Commissioner schedule' },
+      { item: 'TDR Purchase Cost (Market)', formula: `${fmt(sqmToSqft(tdrArea))} sq.ft x Rs 3,500/sq.ft`, amount: tdrCost, note: 'Market rate Rs 3,000-5,000/sq.ft; 20% must be SRA TDR' },
+    ],
+    timelines: [
+      { payment: 'Premium FSI (60% of ASR)', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'Fungible FSI Premium', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'Development Surcharge Cess', timing: 'As per schedule laid down by Commissioner, MCGM', pct: 'Installments' },
+      { payment: 'TDR Purchase', timing: 'Before IOA / CC - to be procured from open market', pct: '100%' },
+      { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+    ],
+    notes: [
+      'Base FSI is free; no premium charged.',
+      '20% of TDR must be sourced from SRA projects (mandatory under DCPR 2034).',
+      'TDR valued at Ready Reckoner rates of RECEIVING zone (not generating zone).',
+      'Premium shared 50:50 between State Govt and MCGM.',
+      'Fungible premium shared: MCGM 50%, State Govt 30%, MSRDC 20%.',
+      'If plot is in CRZ-II area, DCPR 2034 FSI now applies (de-frozen under CRZ 2019 notification).'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== SRA 33(10) CALCULATION ======
+function calcSRA(fsi, plot, rr, tenants, tenantArea, zone, fungPct) {
+  const maxFSI = 4.00;
+  const rehabArea = tenants * 27.88; // min 300 sqft = 27.88 sqm per tenant
+  const saleRatio = SRA_SALE_RATIO[zone] || 1.0;
+  const saleFromRehab = rehabArea * saleRatio;
+  const incentiveFSI = rehabArea * 0.50; // 50% incentive
+  const baseFSIArea = maxFSI * plot;
+  const totalRehabSale = rehabArea + saleFromRehab;
+  const effectiveBase = Math.max(baseFSIArea, totalRehabSale);
+  const fungibleArea = fungPct * effectiveBase;
+  const fungibleFreeRehab = fungPct * rehabArea; // free on rehab
+  const fungiblePaidSale = fungibleArea - fungibleFreeRehab;
+  const totalBuildable = effectiveBase + fungibleArea;
+
+  const infraCharge = (effectiveBase - fsi.base * plot) * rr * 0.02;
+  const corpusFund = tenants * 40000;
+  const fungPrem = Math.max(0, fungiblePaidSale) * rr * 0.60;
+  const relaxPrem = saleFromRehab * rr * 0.025; // 2.5% of ASR for relaxation
+
+  return {
+    areaRows: [
+      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} tenants x 27.88 sq.m`, area: rehabArea, type: 'normal' },
+      { component: `Sale Component (${saleRatio}x Rehab)`, fsi: saleRatio, calc: `${saleRatio} x ${fmt(rehabArea)}`, area: saleFromRehab, type: 'normal' },
+      { component: 'Incentive FSI (50% of Rehab)', fsi: '50%', calc: `0.50 x ${fmt(rehabArea)}`, area: incentiveFSI, type: 'normal' },
+      { component: `OR Max FSI (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
+      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Infrastructure Charges (2% of RRR)', formula: `${fmt(effectiveBase - fsi.base * plot)} sq.m x ${fmtInt(rr)} x 2%`, amount: infraCharge, note: 'Reg 33(10): 2% of RRR on BUA above zonal FSI' },
+      { item: 'Corpus Fund (Rs 40,000/tenant)', formula: `${tenants} x Rs 40,000`, amount: corpusFund, note: 'Deposited with SRA per tenant' },
+      { item: 'Fungible FSI Premium (on sale component)', formula: `${fmt(Math.max(0, fungiblePaidSale))} sq.m x ${fmtInt(rr)} x 60%`, amount: fungPrem, note: 'Free on rehab component; 60% of ASR on sale' },
+      { item: 'Relaxation Premium (2.5% of ASR)', formula: `${fmt(saleFromRehab)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'Reg 33(10): 2.5% of ASR or 10% of normal premium' },
+    ],
+    timelines: [
+      { payment: 'Corpus Fund (Rs 40,000/tenant)', timing: 'Per CEO SRA schedule; full deposit before last 25% free-sale CC', pct: 'Installments' },
+      { payment: 'Infrastructure Charges (2% RRR)', timing: 'Installments per CEO SRA schedule; must complete by end of construction', pct: 'Installments' },
+      { payment: 'Land Premium (25% ASR - if Govt land)', timing: 'Installments as prescribed by Govt; remitted within 30 days of recovery', pct: 'Installments' },
+      { payment: 'Clubbing Premium (51% unearned income)', timing: '50% at IOA + 50% at CC (if clubbing multiple schemes)', pct: '50/50' },
+      { payment: 'Fungible FSI Premium', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+    ],
+    notes: [
+      'Rehab must complete before free-sale component can be marketed.',
+      'Min carpet area per tenant: 27.88 sq.m (300 sq.ft) under SRA.',
+      '35% fungible FSI on rehabilitation component is FREE of premium.',
+      'Incentive FSI (50-75% of rehab area) is free of premium for rehabilitation.',
+      'If on-site FSI cannot be fully consumed, balance available as TDR.',
+      'TDR generation: Island City 2.5x, Suburbs 2.0x of surrendered area.',
+      'Mandatory: 20% of TDR must be from SRA projects.',
+      'On Govt/Semi-Govt land: additional 25% of ASR as land premium payable.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== CESSED 33(7) CALCULATION ======
+function calcCessed(fsi, plot, rr, tenants, tenantArea, compositeType, fungPct) {
+  const maxFSI = 3.00;
+  const incentivePct = CESSED_INCENTIVE[compositeType];
+  const additionalCarpet = compositeType === '2to5' ? 0.08 : (compositeType === '6plus' ? 0.08 : 0);
+  const rehabArea = tenants * (tenantArea * (1 + additionalCarpet));
+  const incentiveArea = rehabArea * incentivePct;
+  const baseFSIArea = maxFSI * plot;
+  const effectiveBase = Math.max(baseFSIArea, rehabArea + incentiveArea);
+  const fungibleArea = fungPct * effectiveBase;
+  const totalBuildable = effectiveBase + fungibleArea;
+
+  const premFSICost = Math.max(0, effectiveBase - rehabArea - incentiveArea) * rr * 0.60;
+  const fungPrem = 0; // free on rehab in 33(7)
+  const relaxPrem = (effectiveBase - rehabArea) * rr * 0.025; // 2.5% ASR for relaxation
+
+  return {
+    areaRows: [
+      { component: 'Rehab Component (existing tenants)', fsi: '', calc: `${tenants} x ${fmt(tenantArea * (1+additionalCarpet))} sq.m`, area: rehabArea, type: 'normal' },
+      { component: `Incentive FSI (${incentivePct*100}% of Rehab)`, fsi: incentivePct, calc: `${incentivePct} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
+      { component: `OR Max FSI (3.0 x plot)`, fsi: 3.0, calc: `3.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
+      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Premium FSI (sale component)', formula: `${fmt(Math.max(0, effectiveBase - rehabArea - incentiveArea))} sq.m x ${fmtInt(rr)} x 60%`, amount: premFSICost, note: 'Reg 30: 60% of ASR on additional sale area' },
+      { item: 'Fungible FSI Premium', formula: 'FREE on rehabilitation component', amount: 0, note: 'Reg 33(7): No premium on fungible for rehab' },
+      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(effectiveBase - rehabArea)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'If open space relaxation granted by Commissioner' },
+    ],
+    timelines: [
+      { payment: 'Premium FSI (60% of ASR)', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'Relaxation Premium', timing: 'At IOA / CC stage', pct: '100%' },
+      { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+    ],
+    notes: [
+      'Applies exclusively to cessed buildings in Island City existing before 30/09/1969.',
+      `Composite (${compositeType}): Incentive at ${incentivePct*100}% of rehab area.` + (additionalCarpet > 0 ? ` Tenants get +8% additional carpet area.` : ''),
+      'FSI = 3.00 OR rehab + incentive, whichever is more.',
+      '35% free fungible FSI on rehabilitation component (no premium).',
+      'Rehab must complete before free-sale component can be marketed.',
+      'For \'A\' category (pre-1940) heritage buildings: max FSI may be 2.50.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== CLUSTER 33(9) CALCULATION ======
+function calcCluster(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) {
+  const maxFSI = 4.00;
+  const minArea = zone === 'island' ? 4000 : 6000;
+  const baseFSIArea = maxFSI * plot;
+  const rehabArea = tenants * tenantArea;
+
+  // Basic Ratio for incentive
+  let incentivePct = 0.75; // default
+  if (rcRate > 0 && rr > 0) {
+    const basicRatio = rr / rcRate;
+    if (basicRatio > 6) incentivePct = plot >= 10000 ? 0.70 : (plot >= 5000 ? 0.65 : (plot >= 1000 ? 0.60 : 0.55));
+    else if (basicRatio > 4) incentivePct = plot >= 10000 ? 0.80 : (plot >= 5000 ? 0.75 : (plot >= 1000 ? 0.70 : 0.65));
+    else if (basicRatio > 2) incentivePct = plot >= 10000 ? 0.90 : (plot >= 5000 ? 0.85 : (plot >= 1000 ? 0.80 : 0.75));
+    else incentivePct = plot >= 10000 ? 1.00 : (plot >= 5000 ? 0.95 : (plot >= 1000 ? 0.90 : 0.85));
+  }
+  const incentiveArea = rehabArea * incentivePct;
+  const effectiveBase = Math.max(baseFSIArea, rehabArea + incentiveArea);
+  const fungibleArea = fungPct * effectiveBase;
+  const totalBuildable = effectiveBase + fungibleArea;
+
+  const devCess = Math.max((effectiveBase - fsi.base * plot) * 5000, (effectiveBase - fsi.base * plot) * rr * 0.07);
+  const heritageCess = 0; // only if heritage structures present
+  const relaxPrem = (effectiveBase - rehabArea) * rr * 0.025;
+
+  return {
+    areaRows: [
+      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabArea, type: 'normal' },
+      { component: `Incentive FSI (${(incentivePct*100).toFixed(0)}% of Rehab - per Basic Ratio)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
+      { component: `OR Max FSI (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
+      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Development Cess (100% of Dev Charge, min Rs 5,000/sq.m)', formula: `${fmt(effectiveBase - fsi.base * plot)} sq.m x max(Rs 5,000, 7% ASR)`, amount: devCess, note: 'Reg 33(9): On BUA above zonal FSI' },
+      { item: 'Fungible FSI Premium', formula: 'FREE on rehab component (HPC approved)', amount: 0, note: 'No premium on fungible for rehab under 33(9)' },
+      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(effectiveBase - rehabArea)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'For open space relaxation in sale component' },
+    ],
+    timelines: [
+      { payment: 'Development Cess (100% DC, min Rs 5,000/sq.m)', timing: 'Per schedule laid down by Commissioner, MCGM', pct: 'Installments' },
+      { payment: 'Relaxation Premium', timing: 'At IOA / CC stage', pct: '100%' },
+      { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+    ],
+    notes: [
+      `Minimum cluster area: ${fmtInt(minArea)} sq.m for ${zone === 'island' ? 'Island City' : 'Suburbs'}.` + (plot < minArea ? ' WARNING: Your plot may be below minimum.' : ''),
+      'Consent: 51% irrevocable (reduced from 70% under DCPR 2034).',
+      'No premium on fungible FSI for rehab component approved by HPC.',
+      'Incentive based on Basic Ratio (LR/RC): ' + (rcRate > 0 ? `LR=${fmtInt(rr)}, RC=${fmtInt(rcRate)}, Ratio=${(rr/rcRate).toFixed(2)}, Incentive=${(incentivePct*100).toFixed(0)}%` : 'Enter RC rate for exact calculation.'),
+      'Heritage Cess: 5% of ASR on BUA of Heritage structures (Grade I & II) - not included above.',
+      'TDR can be used to meet FSI requirements.',
+      'Open spaces & amenities per DCPR norms mandatory.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== MHADA 33(5) CALCULATION ======
+function calcMHADA(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) {
+  const maxFSI = 4.00;
+  const rehabArea = tenants * tenantArea;
+  let basicRatio = 2.0;
+  if (rcRate > 0 && rr > 0) basicRatio = rr / rcRate;
+
+  let incentivePct = 0.75;
+  if (basicRatio > 6) incentivePct = 0.60;
+  else if (basicRatio > 4) incentivePct = 0.70;
+  else if (basicRatio > 2) incentivePct = 0.80;
+  else incentivePct = 0.90;
+
+  const incentiveArea = rehabArea * incentivePct;
+  const rehabPlusIncentive = rehabArea + incentiveArea;
+  const baseFSIArea = maxFSI * plot;
+  const balanceFSI = Math.max(0, baseFSIArea - rehabPlusIncentive);
+  const mhadaShare = balanceFSI * 0.50;
+  const devShare = balanceFSI * 0.50;
+  const effectiveBase = baseFSIArea;
+  const fungibleArea = fungPct * effectiveBase;
+  const totalBuildable = effectiveBase + fungibleArea;
+
+  const relaxPrem = Math.max(devShare * rr * 0.0625, devShare * rr * 0.25 * 0.60);
+  const fungPrem = 0; // free on rehab
+
+  return {
+    areaRows: [
+      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabArea, type: 'normal' },
+      { component: `Incentive (${(incentivePct*100).toFixed(0)}% per Basic Ratio)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
+      { component: 'Rehab + Incentive Subtotal', fsi: '', calc: '', area: rehabPlusIncentive, type: 'subtotal' },
+      { component: 'Balance FSI (4.0 - Rehab - Incentive)', fsi: '', calc: `${fmt(baseFSIArea)} - ${fmt(rehabPlusIncentive)}`, area: balanceFSI, type: 'normal' },
+      { component: 'MHADA Share (~50% of balance)', fsi: '', calc: `50% x ${fmt(balanceFSI)}`, area: mhadaShare, type: 'normal' },
+      { component: 'Developer Share (~50% of balance)', fsi: '', calc: `50% x ${fmt(balanceFSI)}`, area: devShare, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Relaxation Premium (25% of normal OR 6.25% ASR)', formula: `${fmt(devShare)} sq.m x max(6.25% ASR, 25% of 60% ASR)`, amount: relaxPrem, note: 'Reg 33(5): whichever is more' },
+      { item: 'Fungible FSI Premium', formula: 'FREE - no premium on rehab & existing BUA', amount: 0, note: 'Reg 33(5): No premium on fungible for MHADA redevelopment' },
+    ],
+    timelines: [
+      { payment: 'Relaxation Premium', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'MHADA Share (built area)', timing: 'Developer hands over MHADA share free of cost upon completion', pct: 'At OC' },
+      { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+    ],
+    notes: [
+      'Basic Ratio = LR/RC: ' + (rcRate > 0 ? `${fmtInt(rr)} / ${fmtInt(rcRate)} = ${basicRatio.toFixed(2)}` : 'Enter RC rate for exact calculation.'),
+      'Sharing ratio between MHADA and Developer depends on Basic Ratio.',
+      'Developer must hand over MHADA\'s share free of cost.',
+      'No premium on fungible FSI for rehab component.',
+      'Rehab must complete before free-sale component.',
+      'If FSI can\'t be fully utilized on-site (height/fire restrictions), balance available as TDR.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== PTC 33(11) CALCULATION ======
+function calcPTC(fsi, plot, rr, zone, fungPct) {
+  const maxFSI = 4.00;
+  const baseFSI = fsi.base;
+  const additionalFSI = maxFSI - baseFSI;
+  const baseFSIArea = baseFSI * plot;
+  const additionalArea = additionalFSI * plot;
+  const totalFSIArea = maxFSI * plot;
+  const split = PTC_SPLIT[zone] || PTC_SPLIT.suburbs;
+  const ptcTenements = additionalArea * split.tenement;
+  const saleComponent = additionalArea * split.sale;
+  const fungibleArea = fungPct * saleComponent;
+  const devSaleableArea = saleComponent + fungibleArea;
+  const totalBuildable = totalFSIArea + fungibleArea;
+
+  const infraCharge = (totalFSIArea - baseFSIArea) * rr * 0.02;
+  const fungPrem = fungibleArea * rr * 0.60;
+  const clubbingPrem = 0; // only if clubbing
+
+  return {
+    areaRows: [
+      { component: 'Base FSI (Zonal)', fsi: baseFSI, calc: `${baseFSI} x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Additional FSI (33(11))', fsi: additionalFSI, calc: `${additionalFSI.toFixed(2)} x ${fmtInt(plot)}`, area: additionalArea, type: 'normal' },
+      { component: 'Total Plot FSI', fsi: maxFSI, calc: `${maxFSI} x ${fmtInt(plot)}`, area: totalFSIArea, type: 'subtotal' },
+      { component: `PTC Tenements (${split.tenement*100}% of additional - FREE to SRA)`, fsi: '', calc: `${split.tenement} x ${fmt(additionalArea)}`, area: ptcTenements, type: 'normal' },
+      { component: `Saleable Component (${split.sale*100}% of additional)`, fsi: '', calc: `${split.sale} x ${fmt(additionalArea)}`, area: saleComponent, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% of sale)`, fsi: fungPct, calc: `${fungPct} x ${fmt(saleComponent)}`, area: fungibleArea, type: 'normal' },
+      { component: 'DEVELOPER SALEABLE AREA', fsi: '', calc: '', area: devSaleableArea, type: 'total' },
+    ],
+    premiums: [
+      { item: 'Infrastructure Charges (2% of RRR)', formula: `${fmt(additionalArea)} sq.m x ${fmtInt(rr)} x 2%`, amount: infraCharge, note: 'Reg 33(11): Same as 33(10) framework' },
+      { item: 'Fungible FSI Premium (on sale)', formula: `${fmt(fungibleArea)} sq.m x ${fmtInt(rr)} x 60%`, amount: fungPrem, note: '60% of ASR for residential' },
+      { item: 'Clubbing Premium (if applicable)', formula: '51% of unearned income (if clubbing schemes)', amount: 0, note: 'Only if clubbing multiple 33(11) plots' },
+    ],
+    timelines: [
+      { payment: 'Infrastructure Charges (2% RRR)', timing: 'Installments per CEO SRA schedule; by completion of construction', pct: 'Installments' },
+      { payment: 'Premium (40% of unearned income)', timing: '50% at IOA + 50% at CC (for incentive FSI)', pct: '50/50' },
+      { payment: 'Clubbing Premium (51% unearned income)', timing: '50% at IOA + 50% at CC (if clubbing)', pct: '50/50' },
+      { payment: 'PTC Tenements handover', timing: 'Completed and handed FREE to SRA/MCGM before sale occupancy', pct: 'At OC' },
+    ],
+    notes: [
+      `PTC Split: ${split.tenement*100}% tenements (free to SRA) / ${split.sale*100}% saleable (developer).`,
+      'PTC Tenement spec: 27.88 sq.m (300 sq.ft) residential; 20.90 sq.m (225 sq.ft) commercial.',
+      'Mandatory amenities: Community Hall, Health Centre, Aaganwadi, Balwadi, Library, Skill Centre.',
+      'Unconsumed sale area converts to TDR (DRC certificate).',
+      'Clubbing allowed: same ward, adjoining wards, or within 5km.',
+      'Not allowed on plots with zonal FSI < 1.00.',
+      'PTC is a powerful FSI-loading tool for vacant land.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot,
+    devSaleableArea: devSaleableArea
+  };
+}
+
+// ====== AUTHORITY 33(2) CALCULATION ======
+function calcAuthority(fsi, plot, rr, zone, fungPct, fungPremRate, useType) {
+  const maxFSI = 5.00;
+  const baseFSIArea = maxFSI * plot;
+  const fungibleArea = fungPct * baseFSIArea;
+  const totalBuildable = baseFSIArea + fungibleArea;
+
+  const premFSICost = (maxFSI - fsi.base) * plot * rr * 0.60;
+  const fungPrem = fungibleArea * rr * fungPremRate * 0.50; // 50% rebate for 33(2)
+
+  return {
+    areaRows: [
+      { component: 'Base Zonal FSI', fsi: fsi.base, calc: `${fsi.base} x ${fmtInt(plot)}`, area: fsi.base * plot, type: 'normal' },
+      { component: 'Additional FSI (up to 5.0)', fsi: maxFSI - fsi.base, calc: `${(maxFSI - fsi.base).toFixed(2)} x ${fmtInt(plot)}`, area: (maxFSI - fsi.base) * plot, type: 'normal' },
+      { component: 'Total FSI Area', fsi: maxFSI, calc: `${maxFSI} x ${fmtInt(plot)}`, area: baseFSIArea, type: 'subtotal' },
+      { component: `Fungible FSI (${fungPct*100}%)`, fsi: fungPct, calc: `${fungPct} x ${fmt(baseFSIArea)}`, area: fungibleArea, type: 'normal' },
+      { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
+    ],
+    premiums: [
+      { item: 'Premium FSI (60% ASR)', formula: `${fmt((maxFSI - fsi.base) * plot)} sq.m x ${fmtInt(rr)} x 60%`, amount: premFSICost, note: 'Additional FSI on payment of premium' },
+      { item: 'Fungible FSI Premium (50% rebate for 33(2))', formula: `${fmt(fungibleArea)} sq.m x ${fmtInt(rr)} x ${fungPremRate*100}% x 50%`, amount: fungPrem, note: 'Reg 33(2): 50% rebate on fungible premium' },
+    ],
+    timelines: [
+      { payment: 'Premium FSI', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'Fungible Premium', timing: 'At CC stage', pct: '100%' },
+      { payment: 'Development Charges', timing: 'At Building Permission stage', pct: '100%' },
+    ],
+    notes: [
+      'Applies to Central/State Govt and semi-govt agencies (Port Trust, Railways, Defence, BEST, MTNL).',
+      'Buildings > 30 years old eligible for cluster development.',
+      'Up to 5.0 FSI for residential; 4.0 FSI for commercial in suburbs.',
+      '50% rebate on fungible FSI premium under Reg 33(2).',
+      'Agencies can develop land for residential/commercial use per DCPR 2034.'
+    ],
+    totalBuildable: totalBuildable,
+    effectiveFSI: totalBuildable / plot
+  };
+}
+
+// ====== RENDER RESULTS ======
+function renderResults(result, scheme, zone, roadWidth, plotArea, rrRate, ward, useType) {
+  document.getElementById('results').classList.add('visible');
+
+  const schemeInfo = SCHEME_FSI[scheme];
+  const zoneName = zone === 'island' ? 'Island City' : (zone === 'extended' ? 'Extended Suburbs' : 'Suburbs');
+  const roadLabel = roadWidth === '30' ? '27M+' : `Up to ${roadWidth}M`;
+
+  // Summary
+  document.getElementById('summarySection').innerHTML = `
+    <div class="result-card">
+      <h3><span class="card-num">S</span> Project Summary</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <span class="summary-badge">${schemeInfo.label}</span>
+        <span class="summary-badge">${zoneName}</span>
+        <span class="summary-badge">Road: ${roadLabel}</span>
+        <span class="summary-badge">Plot: ${fmtInt(plotArea)} sq.m (${fmt(sqmToSqft(plotArea))} sq.ft)</span>
+        <span class="summary-badge">RRR: Rs ${fmtInt(rrRate)}/sq.m</span>
+        ${ward ? `<span class="summary-badge">Ward: ${ward}</span>` : ''}
+        <span class="summary-badge">${useType.charAt(0).toUpperCase() + useType.slice(1)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        <div style="background:#EBF5FB;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:var(--primary);">${fmt(result.totalBuildable)} sq.m</div>
+          <div style="font-size:12px;color:var(--muted);">Total Buildable Area</div>
+          <div style="font-size:14px;color:var(--accent);font-weight:600;">${fmt(sqmToSqft(result.totalBuildable))} sq.ft</div>
+        </div>
+        <div style="background:#FEF9E7;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:var(--orange);">${result.effectiveFSI.toFixed(2)}</div>
+          <div style="font-size:12px;color:var(--muted);">Effective FSI</div>
+        </div>
+        <div style="background:#FADBD8;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:var(--red);">${fmtCr(result.premiums.reduce((s,p) => s + p.amount, 0))}</div>
+          <div style="font-size:12px;color:var(--muted);">Total Premiums (Est.)</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Area Calculation
+  let areaHTML = `<div class="result-card">
+    <h3><span class="card-num">1</span> Detailed Area Calculation Statement</h3>
+    <span class="scheme-tag ${scheme}">${schemeInfo.label}</span>
+    <table class="calc-table">
+      <thead><tr><th>Component</th><th>FSI / Rate</th><th>Calculation</th><th class="num">Area (sq.m)</th><th class="num">Area (sq.ft)</th></tr></thead><tbody>`;
+
+  result.areaRows.forEach(r => {
+    const cls = r.type === 'total' ? 'total-row' : (r.type === 'subtotal' ? 'subtotal-row' : '');
+    areaHTML += `<tr class="${cls}">
+      <td>${r.component}</td><td>${r.fsi}</td><td>${r.calc}</td>
+      <td class="num">${fmt(r.area)}</td><td class="num">${fmt(sqmToSqft(r.area))}</td></tr>`;
+  });
+  areaHTML += '</tbody></table></div>';
+  document.getElementById('areaSection').innerHTML = areaHTML;
+
+  // Premium Costs
+  let premHTML = `<div class="result-card premium-card">
+    <h3><span class="card-num">2</span> Premium Costs Payable to Authorities</h3>
+    <table class="calc-table">
+      <thead><tr><th>Premium Item</th><th>Formula</th><th class="num">Amount (Rs)</th><th>Regulation Reference</th></tr></thead><tbody>`;
+
+  let totalPrem = 0;
+  result.premiums.forEach(p => {
+    totalPrem += p.amount;
+    premHTML += `<tr><td>${p.item}</td><td>${p.formula}</td>
+      <td class="num">${fmtCr(p.amount)}</td><td style="font-size:12px;">${p.note}</td></tr>`;
+  });
+  premHTML += `<tr class="total-row"><td colspan="2"><strong>TOTAL ESTIMATED PREMIUMS</strong></td>
+    <td class="num"><strong>${fmtCr(totalPrem)}</strong></td><td></td></tr>`;
+  premHTML += '</tbody></table>';
+  premHTML += `<div class="info-box"><strong>Note:</strong> Premium amounts are based on the Ready Reckoner Rate you entered (Rs ${fmtInt(rrRate)}/sq.m).
+    Actual premiums will be calculated at the ASR prevailing at the time of IOA/CC. Rates change annually (typically revised every April).</div></div>`;
+  document.getElementById('premiumSection').innerHTML = premHTML;
+
+  // Payment Timelines
+  let timeHTML = `<div class="result-card timeline-card">
+    <h3><span class="card-num">3</span> Payment Timelines & Schedule</h3>
+    <table class="calc-table">
+      <thead><tr><th>Payment</th><th>Timing / Stage</th><th>Split</th></tr></thead><tbody>`;
+
+  result.timelines.forEach(t => {
+    timeHTML += `<tr><td>${t.payment}</td><td>${t.timing}</td><td>${t.pct}</td></tr>`;
+  });
+  timeHTML += '</tbody></table>';
+  timeHTML += `<div class="note-box"><strong>Key Milestones:</strong><br>
+    <strong>IOA</strong> = Intimation of Approval (first approval stage)<br>
+    <strong>CC</strong> = Commencement Certificate (permission to begin construction)<br>
+    <strong>OC</strong> = Occupation Certificate (completion and occupancy permission)<br>
+    Premium amounts are calculated at ASR prevailing at the time of the respective milestone.</div></div>`;
+  document.getElementById('timelineSection').innerHTML = timeHTML;
+
+  // Notes
+  let notesHTML = `<div class="result-card">
+    <h3><span class="card-num">4</span> Important Notes & Conditions</h3><ul style="padding-left:20px;">`;
+  result.notes.forEach(n => { notesHTML += `<li style="margin-bottom:6px;">${n}</li>`; });
+  notesHTML += '</ul></div>';
+  document.getElementById('notesSection').innerHTML = notesHTML;
+
+  // Scroll to results
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Auto-show/hide fields on load
+document.getElementById('scheme').dispatchEvent(new Event('change'));
+</script>
+</body>
+</html>
