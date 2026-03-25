@@ -129,12 +129,11 @@ table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Combined Schemes Styles */
 .combine-toggle-wrapper {
-  grid-column: 1 / -1;
   background: linear-gradient(135deg, #EBF5FB, #D6EAF8);
   border: 2px solid var(--accent);
   border-radius: 10px;
   padding: 16px 20px;
-  margin-top: 4px;
+  margin-top: 20px;
 }
 .combine-toggle-wrapper h4 {
   color: var(--primary); font-size: 14px; margin-bottom: 8px;
@@ -355,67 +354,68 @@ table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
         <span class="hint">RC as per ASR (for Basic Ratio calculation)</span>
       </div>
 
-      <!-- COMBINE SCHEMES SECTION -->
-      <div class="combine-toggle-wrapper" id="combineWrapper">
-        <h4>&#9881; Scheme Combination (Clubbing)</h4>
-        <div class="combine-toggle">
-          <input type="checkbox" id="combineEnabled">
-          <label for="combineEnabled">Combine with a second scheme on the same plot (as per DCPR 2034 Clubbing provisions)</label>
-        </div>
-        <div class="combine-fields" id="combineFields">
-          <div class="combine-grid">
-            <div class="form-group">
-              <label>Secondary Scheme</label>
-              <select id="scheme2">
-                <option value="">-- Select Secondary Scheme --</option>
-              </select>
-              <span class="hint" id="comboHint"></span>
+    </div>
+
+    <!-- COMBINE SCHEMES SECTION - Outside form-grid for full visibility -->
+    <div class="combine-toggle-wrapper" id="combineWrapper">
+      <h4>&#9881; Scheme Combination (Clubbing)</h4>
+      <div class="combine-toggle">
+        <input type="checkbox" id="combineEnabled">
+        <label for="combineEnabled">Combine with a second scheme on the same plot (as per DCPR 2034 Clubbing provisions)</label>
+      </div>
+      <div class="combine-fields" id="combineFields">
+        <div class="combine-grid">
+          <div class="form-group">
+            <label>Secondary Scheme</label>
+            <select id="scheme2">
+              <option value="">-- Select Secondary Scheme --</option>
+            </select>
+            <span class="hint" id="comboHint"></span>
+          </div>
+          <div class="form-group">
+            <label>Plot Split: Primary Scheme Area (%)</label>
+            <div class="split-slider-row">
+              <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPctLabel">50%</span>
+              <input type="range" id="splitPct" min="10" max="90" value="50" step="5">
+              <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPct2Label">50%</span>
             </div>
-            <div class="form-group">
-              <label>Plot Split: Primary Scheme Area (%)</label>
-              <div class="split-slider-row">
-                <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPctLabel">50%</span>
-                <input type="range" id="splitPct" min="10" max="90" value="50" step="5">
-                <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPct2Label">50%</span>
-              </div>
-              <div class="split-labels">
-                <span>Primary scheme</span>
-                <span>Secondary scheme</span>
-              </div>
-            </div>
-            <div class="form-group" id="tenants2Group" style="display:none;">
-              <label>Tenants (Secondary Scheme)</label>
-              <input type="number" id="tenants2" placeholder="e.g. 30" min="0">
-              <span class="hint">Tenants for rehabilitation under second scheme</span>
-            </div>
-            <div class="form-group" id="tenantArea2Group" style="display:none;">
-              <label>Avg Carpet Area - Secondary (sq.m)</label>
-              <input type="number" id="tenantArea2" placeholder="e.g. 25" min="1" value="25">
-            </div>
-            <div class="form-group" id="compositeGroup2" style="display:none;">
-              <label>Composite Type (Secondary 33(7))</label>
-              <select id="compositeType2">
-                <option value="single">Single Plot</option>
-                <option value="2to5">2-5 Plots Composite</option>
-                <option value="6plus">6+ Plots Composite</option>
-              </select>
-            </div>
-            <div class="form-group" id="rcRate2Group" style="display:none;">
-              <label>Rate of Construction - Secondary (Rs/sq.m)</label>
-              <input type="number" id="rcRate2" placeholder="e.g. 25000" min="1">
+            <div class="split-labels">
+              <span>Primary scheme</span>
+              <span>Secondary scheme</span>
             </div>
           </div>
-          <div class="split-preview" id="splitPreview" style="display:none;">
-            <div class="split-box primary">
-              <div class="split-pct" id="splitPrimaryPct">50%</div>
-              <div id="splitPrimaryLabel">Primary Scheme</div>
-              <div class="split-area" id="splitPrimaryArea"></div>
-            </div>
-            <div class="split-box secondary">
-              <div class="split-pct" id="splitSecondaryPct">50%</div>
-              <div id="splitSecondaryLabel">Secondary Scheme</div>
-              <div class="split-area" id="splitSecondaryArea"></div>
-            </div>
+          <div class="form-group" id="tenants2Group" style="display:none;">
+            <label>Tenants (Secondary Scheme)</label>
+            <input type="number" id="tenants2" placeholder="e.g. 30" min="0">
+            <span class="hint">Tenants for rehabilitation under second scheme</span>
+          </div>
+          <div class="form-group" id="tenantArea2Group" style="display:none;">
+            <label>Avg Carpet Area - Secondary (sq.m)</label>
+            <input type="number" id="tenantArea2" placeholder="e.g. 25" min="1" value="25">
+          </div>
+          <div class="form-group" id="compositeGroup2" style="display:none;">
+            <label>Composite Type (Secondary 33(7))</label>
+            <select id="compositeType2">
+              <option value="single">Single Plot</option>
+              <option value="2to5">2-5 Plots Composite</option>
+              <option value="6plus">6+ Plots Composite</option>
+            </select>
+          </div>
+          <div class="form-group" id="rcRate2Group" style="display:none;">
+            <label>Rate of Construction - Secondary (Rs/sq.m)</label>
+            <input type="number" id="rcRate2" placeholder="e.g. 25000" min="1">
+          </div>
+        </div>
+        <div class="split-preview" id="splitPreview" style="display:none;">
+          <div class="split-box primary">
+            <div class="split-pct" id="splitPrimaryPct">50%</div>
+            <div id="splitPrimaryLabel">Primary Scheme</div>
+            <div class="split-area" id="splitPrimaryArea"></div>
+          </div>
+          <div class="split-box secondary">
+            <div class="split-pct" id="splitSecondaryPct">50%</div>
+            <div id="splitSecondaryLabel">Secondary Scheme</div>
+            <div class="split-area" id="splitSecondaryArea"></div>
           </div>
         </div>
       </div>
