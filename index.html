@@ -127,6 +127,79 @@ table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
   font-size: 11px; color: var(--orange); font-weight: 600; margin-top: 2px;
 }
 
+/* Combined Schemes Styles */
+.combine-toggle-wrapper {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #EBF5FB, #D6EAF8);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-top: 4px;
+}
+.combine-toggle-wrapper h4 {
+  color: var(--primary); font-size: 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.combine-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.combine-toggle input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;
+}
+.combine-toggle label {
+  font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer;
+  text-transform: none !important; letter-spacing: 0 !important;
+}
+.combine-fields {
+  display: none; margin-top: 14px;
+  border-top: 1px solid var(--accent); padding-top: 14px;
+}
+.combine-fields.active { display: block; }
+.combine-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;
+}
+.combine-grid .form-group label { font-size: 12px; }
+.split-slider-row {
+  display: flex; align-items: center; gap: 12px; margin-top: 8px;
+}
+.split-slider-row input[type="range"] {
+  flex: 1; accent-color: var(--accent); height: 6px;
+}
+.split-labels {
+  display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px;
+}
+.split-preview {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;
+}
+.split-box {
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; text-align: center;
+}
+.split-box.primary { background: #D5F5E3; border: 1px solid #82E0AA; }
+.split-box.secondary { background: #FADBD8; border: 1px solid #F1948A; }
+.split-box .split-pct { font-size: 22px; font-weight: 800; }
+.split-box .split-area { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.valid-combo-hint {
+  font-size: 11px; color: var(--green); margin-top: 4px; font-weight: 600;
+}
+.invalid-combo-hint {
+  font-size: 11px; color: var(--red); margin-top: 4px; font-weight: 600;
+}
+
+/* Combined result styling */
+.combined-divider {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white; padding: 12px 20px; border-radius: 8px;
+  margin: 20px 0 16px 0; font-weight: 700; font-size: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.combined-divider .scheme-label {
+  background: rgba(255,255,255,0.2); padding: 3px 12px; border-radius: 4px; font-size: 13px;
+}
+.clubbing-premium-card {
+  border-left: 4px solid var(--highlight);
+  background: #FFF5F5;
+}
+
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
   .header h1 { font-size: 22px; }
@@ -280,6 +353,71 @@ table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
         <label>Rate of Construction (Rs/sq.m)</label>
         <input type="number" id="rcRate" placeholder="e.g. 25000" min="1">
         <span class="hint">RC as per ASR (for Basic Ratio calculation)</span>
+      </div>
+
+      <!-- COMBINE SCHEMES SECTION -->
+      <div class="combine-toggle-wrapper" id="combineWrapper">
+        <h4>&#9881; Scheme Combination (Clubbing)</h4>
+        <div class="combine-toggle">
+          <input type="checkbox" id="combineEnabled">
+          <label for="combineEnabled">Combine with a second scheme on the same plot (as per DCPR 2034 Clubbing provisions)</label>
+        </div>
+        <div class="combine-fields" id="combineFields">
+          <div class="combine-grid">
+            <div class="form-group">
+              <label>Secondary Scheme</label>
+              <select id="scheme2">
+                <option value="">-- Select Secondary Scheme --</option>
+              </select>
+              <span class="hint" id="comboHint"></span>
+            </div>
+            <div class="form-group">
+              <label>Plot Split: Primary Scheme Area (%)</label>
+              <div class="split-slider-row">
+                <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPctLabel">50%</span>
+                <input type="range" id="splitPct" min="10" max="90" value="50" step="5">
+                <span style="font-size:12px;font-weight:600;white-space:nowrap;" id="splitPct2Label">50%</span>
+              </div>
+              <div class="split-labels">
+                <span>Primary scheme</span>
+                <span>Secondary scheme</span>
+              </div>
+            </div>
+            <div class="form-group" id="tenants2Group" style="display:none;">
+              <label>Tenants (Secondary Scheme)</label>
+              <input type="number" id="tenants2" placeholder="e.g. 30" min="0">
+              <span class="hint">Tenants for rehabilitation under second scheme</span>
+            </div>
+            <div class="form-group" id="tenantArea2Group" style="display:none;">
+              <label>Avg Carpet Area - Secondary (sq.m)</label>
+              <input type="number" id="tenantArea2" placeholder="e.g. 25" min="1" value="25">
+            </div>
+            <div class="form-group" id="compositeGroup2" style="display:none;">
+              <label>Composite Type (Secondary 33(7))</label>
+              <select id="compositeType2">
+                <option value="single">Single Plot</option>
+                <option value="2to5">2-5 Plots Composite</option>
+                <option value="6plus">6+ Plots Composite</option>
+              </select>
+            </div>
+            <div class="form-group" id="rcRate2Group" style="display:none;">
+              <label>Rate of Construction - Secondary (Rs/sq.m)</label>
+              <input type="number" id="rcRate2" placeholder="e.g. 25000" min="1">
+            </div>
+          </div>
+          <div class="split-preview" id="splitPreview" style="display:none;">
+            <div class="split-box primary">
+              <div class="split-pct" id="splitPrimaryPct">50%</div>
+              <div id="splitPrimaryLabel">Primary Scheme</div>
+              <div class="split-area" id="splitPrimaryArea"></div>
+            </div>
+            <div class="split-box secondary">
+              <div class="split-pct" id="splitSecondaryPct">50%</div>
+              <div id="splitSecondaryLabel">Secondary Scheme</div>
+              <div class="split-area" id="splitSecondaryArea"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -506,6 +644,30 @@ function calculate() {
   const fsiData = FSI_TABLE[zoneKey][roadWidth];
   const fungiblePct = useType === 'residential' ? 0.35 : 0.20;
   const fungiblePremiumRate = useType === 'residential' ? 0.60 : 0.80;
+
+  // Check if combined mode is enabled
+  const combineEnabled = document.getElementById('combineEnabled').checked;
+  const scheme2 = document.getElementById('scheme2').value;
+
+  if (combineEnabled && scheme2) {
+    // Validate secondary scheme
+    if (!VALID_COMBINATIONS[scheme] || !VALID_COMBINATIONS[scheme].find(c => c.value === scheme2)) {
+      alert('Invalid scheme combination. Please select a valid secondary scheme.');
+      return;
+    }
+    const splitPct = parseInt(document.getElementById('splitPct').value);
+    const tenants2 = parseInt(document.getElementById('tenants2').value) || 0;
+    const tenantArea2 = parseFloat(document.getElementById('tenantArea2').value) || 25;
+    const compositeType2 = document.getElementById('compositeType2').value;
+    const rcRate2 = parseFloat(document.getElementById('rcRate2').value) || 0;
+
+    const combined = calcCombined(scheme, scheme2, zone, roadWidth, plotArea, rrRate, splitPct, useType, fungiblePct, fungiblePremiumRate, {
+      tenants1: tenants, tenantArea1: tenantArea, compositeType1: compositeType, rcRate1: rcRate,
+      tenants2: tenants2, tenantArea2: tenantArea2, compositeType2: compositeType2, rcRate2: rcRate2
+    });
+    renderCombinedResults(combined, zone, roadWidth, plotArea, rrRate, ward, useType);
+    return;
+  }
 
   let result = {};
 
@@ -993,6 +1155,360 @@ function renderResults(result, scheme, zone, roadWidth, plotArea, rrRate, ward, 
 
   // Scroll to results
   document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ====== COMBINE SCHEMES LOGIC ======
+
+// Valid combinations under DCPR 2034 clubbing provisions
+const VALID_COMBINATIONS = {
+  freehold: [
+    { value: 'sra', label: 'SRA 33(10) - Slum on adjoining/part land', regulation: 'DCPR 2034 + DCR 33(10): Freehold + SRA clubbing on same/adjoining plots' },
+    { value: 'ptc', label: 'PTC 33(11) - Transit Camp obligation', regulation: 'DCPR 2034 + DCR 33(11): Freehold land with PTC tenement obligation' },
+    { value: 'cessed', label: 'Cessed 33(7) - Cessed bldg on part plot', regulation: 'DCPR 2034 + DCR 33(7): Freehold + Cessed building composite' },
+  ],
+  sra: [
+    { value: 'freehold', label: 'Freehold (DCPR 2034) - adjoining land', regulation: 'DCR 33(10) + DCPR 2034: SRA + Freehold development' },
+    { value: 'ptc', label: 'PTC 33(11) - Transit Camp on same plot', regulation: 'DCR 33(10) + 33(11): SRA + PTC combined rehabilitation' },
+    { value: 'cessed', label: 'Cessed 33(7) - Cessed bldg with slum', regulation: 'DCR 33(10) + 33(7): Slum + Cessed building composite' },
+  ],
+  cessed: [
+    { value: 'sra', label: 'SRA 33(10) - Slum encroachment on plot', regulation: 'DCR 33(7) + 33(10): Cessed building with slum component' },
+    { value: 'freehold', label: 'Freehold (DCPR 2034) - adjoining land', regulation: 'DCR 33(7) + DCPR 2034: Cessed + Freehold composite' },
+    { value: 'cluster', label: 'Cluster 33(9) - within cluster boundary', regulation: 'DCR 33(7) + 33(9): Cessed buildings within cluster redevelopment' },
+  ],
+  cluster: [
+    { value: 'mhada', label: 'MHADA 33(5) - MHADA colony in cluster', regulation: 'DCR 33(9) + 33(5): Cluster including MHADA colony' },
+    { value: 'sra', label: 'SRA 33(10) - Slum within cluster', regulation: 'DCR 33(9) + 33(10): Cluster with slum rehabilitation' },
+    { value: 'cessed', label: 'Cessed 33(7) - Cessed bldg in cluster', regulation: 'DCR 33(9) + 33(7): Cluster with cessed building' },
+  ],
+  mhada: [
+    { value: 'cluster', label: 'Cluster 33(9) - MHADA in cluster area', regulation: 'DCR 33(5) + 33(9): MHADA colony within larger cluster' },
+    { value: 'sra', label: 'SRA 33(10) - Slum on MHADA land', regulation: 'DCR 33(5) + 33(10): MHADA + slum rehabilitation' },
+  ],
+  ptc: [
+    { value: 'sra', label: 'SRA 33(10) - SRA on same plot', regulation: 'DCR 33(11) + 33(10): PTC + SRA combined' },
+    { value: 'freehold', label: 'Freehold (DCPR 2034) - adjoining land', regulation: 'DCR 33(11) + DCPR 2034: PTC with freehold' },
+  ],
+  authority: [
+    { value: 'sra', label: 'SRA 33(10) - Slum on Govt land', regulation: 'DCR 33(2) + 33(10): Authority land with SRA' },
+    { value: 'cluster', label: 'Cluster 33(9) - Cluster on Govt land', regulation: 'DCR 33(2) + 33(9): Authority land within cluster' },
+  ]
+};
+
+// Populate secondary scheme dropdown based on primary
+function updateSecondarySchemes() {
+  const primary = document.getElementById('scheme').value;
+  const select2 = document.getElementById('scheme2');
+  const comboHint = document.getElementById('comboHint');
+  select2.innerHTML = '<option value="">-- Select Secondary Scheme --</option>';
+  comboHint.innerHTML = '';
+  comboHint.className = 'hint';
+
+  if (primary && VALID_COMBINATIONS[primary]) {
+    const combos = VALID_COMBINATIONS[primary];
+    combos.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.value;
+      opt.textContent = c.label;
+      select2.appendChild(opt);
+    });
+    comboHint.innerHTML = '<span class="valid-combo-hint">' + combos.length + ' valid combination(s) available under regulation</span>';
+  } else {
+    comboHint.innerHTML = '<span class="invalid-combo-hint">Select a primary scheme first</span>';
+  }
+  updateSecondaryFields();
+}
+
+// Show/hide secondary scheme-specific fields
+function updateSecondaryFields() {
+  const s2 = document.getElementById('scheme2').value;
+  const needsTenants = ['sra', 'cessed', 'cluster', 'mhada', 'ptc'].includes(s2);
+  document.getElementById('tenants2Group').style.display = needsTenants ? 'flex' : 'none';
+  document.getElementById('tenantArea2Group').style.display = needsTenants ? 'flex' : 'none';
+  document.getElementById('compositeGroup2').style.display = s2 === 'cessed' ? 'flex' : 'none';
+  document.getElementById('rcRate2Group').style.display = (s2 === 'mhada' || s2 === 'cluster') ? 'flex' : 'none';
+
+  // Update combo hint with regulation reference
+  const primary = document.getElementById('scheme').value;
+  const comboHint = document.getElementById('comboHint');
+  if (primary && s2 && VALID_COMBINATIONS[primary]) {
+    const match = VALID_COMBINATIONS[primary].find(c => c.value === s2);
+    if (match) {
+      comboHint.innerHTML = '<span class="valid-combo-hint">' + match.regulation + '</span>';
+    }
+  }
+  updateSplitPreview();
+}
+
+// Update the visual split preview
+function updateSplitPreview() {
+  const plotArea = parseFloat(document.getElementById('plotArea').value) || 0;
+  const splitPct = parseInt(document.getElementById('splitPct').value);
+  const scheme1 = document.getElementById('scheme').value;
+  const scheme2 = document.getElementById('scheme2').value;
+
+  document.getElementById('splitPctLabel').textContent = splitPct + '%';
+  document.getElementById('splitPct2Label').textContent = (100 - splitPct) + '%';
+  document.getElementById('splitPrimaryPct').textContent = splitPct + '%';
+  document.getElementById('splitSecondaryPct').textContent = (100 - splitPct) + '%';
+
+  const label1 = scheme1 ? (SCHEME_FSI[scheme1]?.label || scheme1) : 'Primary';
+  const label2 = scheme2 ? (SCHEME_FSI[scheme2]?.label || scheme2) : 'Secondary';
+  document.getElementById('splitPrimaryLabel').textContent = label1;
+  document.getElementById('splitSecondaryLabel').textContent = label2;
+
+  if (plotArea > 0) {
+    const area1 = plotArea * splitPct / 100;
+    const area2 = plotArea * (100 - splitPct) / 100;
+    document.getElementById('splitPrimaryArea').textContent = fmtInt(area1) + ' sq.m (' + fmtInt(sqmToSqft(area1)) + ' sq.ft)';
+    document.getElementById('splitSecondaryArea').textContent = fmtInt(area2) + ' sq.m (' + fmtInt(sqmToSqft(area2)) + ' sq.ft)';
+    document.getElementById('splitPreview').style.display = 'grid';
+  } else {
+    document.getElementById('splitPrimaryArea').textContent = 'Enter plot area';
+    document.getElementById('splitSecondaryArea').textContent = 'Enter plot area';
+    document.getElementById('splitPreview').style.display = scheme2 ? 'grid' : 'none';
+  }
+}
+
+// Toggle combine fields
+document.getElementById('combineEnabled').addEventListener('change', function() {
+  document.getElementById('combineFields').classList.toggle('active', this.checked);
+  if (this.checked) updateSecondarySchemes();
+});
+
+// Update secondary schemes when primary changes
+document.getElementById('scheme').addEventListener('change', function() {
+  if (document.getElementById('combineEnabled').checked) updateSecondarySchemes();
+});
+
+document.getElementById('scheme2').addEventListener('change', updateSecondaryFields);
+document.getElementById('splitPct').addEventListener('input', updateSplitPreview);
+document.getElementById('plotArea').addEventListener('input', function() {
+  if (document.getElementById('combineEnabled').checked) updateSplitPreview();
+});
+
+// ====== COMBINED CALCULATION ======
+function calcCombined(scheme1, scheme2, zone, roadWidth, plotArea, rrRate, splitPct, useType, fungiblePct, fungiblePremiumRate, params) {
+  const zoneKey = zone === 'extended' ? 'suburbs' : zone;
+  const fsiData = FSI_TABLE[zoneKey][roadWidth];
+
+  const plot1 = plotArea * splitPct / 100;
+  const plot2 = plotArea * (100 - splitPct) / 100;
+
+  // Calculate each scheme on its portion
+  const result1 = calcScheme(scheme1, fsiData, plot1, rrRate, params.tenants1, params.tenantArea1, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType1, params.rcRate1);
+  const result2 = calcScheme(scheme2, fsiData, plot2, rrRate, params.tenants2, params.tenantArea2, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType2, params.rcRate2);
+
+  // Clubbing Premium: 51% of unearned income on the combined development
+  // Unearned income = incremental market value from higher FSI clubbing
+  const totalBuildable = result1.totalBuildable + result2.totalBuildable;
+  const effectiveFSI = totalBuildable / plotArea;
+  const marketRate = useType === 'commercial' ? rrRate * 1.2 : rrRate;
+  // Clubbing premium applies on the incremental benefit beyond what individual schemes would yield
+  const normalFSIArea = fsiData.total * plotArea;
+  const incrementalArea = Math.max(0, totalBuildable - normalFSIArea);
+  const clubbingPremium = incrementalArea * marketRate * 0.51 * 0.10; // 51% of 10% unearned income estimate
+
+  const totalPrem1 = result1.premiums.reduce((s, p) => s + p.amount, 0);
+  const totalPrem2 = result2.premiums.reduce((s, p) => s + p.amount, 0);
+  const grandTotalPrem = totalPrem1 + totalPrem2 + clubbingPremium;
+
+  return {
+    isCombined: true,
+    scheme1, scheme2,
+    plot1, plot2,
+    splitPct,
+    result1, result2,
+    clubbingPremium,
+    totalBuildable,
+    effectiveFSI,
+    totalPremiums: grandTotalPrem,
+    combinedNotes: [
+      `Combined Development: ${SCHEME_FSI[scheme1].label} (${splitPct}% plot = ${fmtInt(plot1)} sq.m) + ${SCHEME_FSI[scheme2].label} (${100-splitPct}% plot = ${fmtInt(plot2)} sq.m)`,
+      'Clubbing Premium: 51% of unearned income payable on incremental FSI benefit from combining schemes.',
+      'Clubbing permitted under DCPR 2034 for plots within same ward, adjoining wards, or within 5km radius.',
+      'Both scheme components must comply with their individual regulations independently.',
+      'Rehabilitation components from both schemes must complete before free-sale areas can be marketed.',
+      'Combined consent requirements: must satisfy consent thresholds of BOTH schemes.',
+      'Single IOA/CC may be obtained for combined development, or separate approvals per scheme.',
+      'TDR generated from rehab scheme can be utilized in freehold component (if applicable).',
+    ]
+  };
+}
+
+// Helper: dispatch to the right calc function by scheme name
+function calcScheme(scheme, fsiData, plot, rr, tenants, tenantArea, zone, fungPct, fungPremRate, useType, compositeType, rcRate) {
+  switch(scheme) {
+    case 'freehold': return calcFreehold(fsiData, plot, rr, fungPct, fungPremRate, useType, zone);
+    case 'sra': return calcSRA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct);
+    case 'cessed': return calcCessed(fsiData, plot, rr, tenants, tenantArea, compositeType, fungPct);
+    case 'cluster': return calcCluster(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate);
+    case 'mhada': return calcMHADA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate);
+    case 'ptc': return calcPTC(fsiData, plot, rr, zone, fungPct);
+    case 'authority': return calcAuthority(fsiData, plot, rr, zone, fungPct, fungPremRate, useType);
+    default: return calcFreehold(fsiData, plot, rr, fungPct, fungPremRate, useType, zone);
+  }
+}
+
+// ====== COMBINED RESULTS RENDERER ======
+function renderCombinedResults(combined, zone, roadWidth, plotArea, rrRate, ward, useType) {
+  document.getElementById('results').classList.add('visible');
+
+  const zoneName = zone === 'island' ? 'Island City' : (zone === 'extended' ? 'Extended Suburbs' : 'Suburbs');
+  const roadLabel = roadWidth === '30' ? '27M+' : 'Up to ' + roadWidth + 'M';
+  const label1 = SCHEME_FSI[combined.scheme1].label;
+  const label2 = SCHEME_FSI[combined.scheme2].label;
+
+  // Summary
+  document.getElementById('summarySection').innerHTML = `
+    <div class="result-card">
+      <h3><span class="card-num">S</span> Combined Project Summary</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <span class="summary-badge" style="background:var(--highlight);">COMBINED SCHEME</span>
+        <span class="summary-badge">${label1} (${combined.splitPct}%)</span>
+        <span class="summary-badge">${label2} (${100 - combined.splitPct}%)</span>
+        <span class="summary-badge">${zoneName}</span>
+        <span class="summary-badge">Road: ${roadLabel}</span>
+        <span class="summary-badge">Total Plot: ${fmtInt(plotArea)} sq.m</span>
+        <span class="summary-badge">RRR: Rs ${fmtInt(rrRate)}/sq.m</span>
+        ${ward ? '<span class="summary-badge">Ward: ' + ward + '</span>' : ''}
+        <span class="summary-badge">${useType.charAt(0).toUpperCase() + useType.slice(1)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+        <div style="background:#EBF5FB;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:26px;font-weight:800;color:var(--primary);">${fmt(combined.totalBuildable)} sq.m</div>
+          <div style="font-size:12px;color:var(--muted);">Total Buildable (Combined)</div>
+          <div style="font-size:14px;color:var(--accent);font-weight:600;">${fmt(sqmToSqft(combined.totalBuildable))} sq.ft</div>
+        </div>
+        <div style="background:#FEF9E7;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:26px;font-weight:800;color:var(--orange);">${combined.effectiveFSI.toFixed(2)}</div>
+          <div style="font-size:12px;color:var(--muted);">Combined Effective FSI</div>
+        </div>
+        <div style="background:#FADBD8;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:26px;font-weight:800;color:var(--red);">${fmtCr(combined.totalPremiums)}</div>
+          <div style="font-size:12px;color:var(--muted);">Total Premiums (Both)</div>
+        </div>
+        <div style="background:#D5F5E3;padding:16px;border-radius:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#1E8449;">${fmt(combined.result1.totalBuildable)} sq.m</div>
+          <div style="font-size:11px;color:var(--muted);">${label1} Area</div>
+          <div style="font-size:14px;font-weight:700;color:#C0392B;margin-top:4px;">${fmt(combined.result2.totalBuildable)} sq.m</div>
+          <div style="font-size:11px;color:var(--muted);">${label2} Area</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Area Section - both schemes
+  let areaHTML = '';
+
+  // Scheme 1 area table
+  areaHTML += '<div class="combined-divider"><span>A</span> ' + label1 + ' <span class="scheme-label">' + combined.splitPct + '% of plot = ' + fmtInt(combined.plot1) + ' sq.m</span></div>';
+  areaHTML += renderAreaTable(combined.result1, combined.scheme1);
+
+  // Scheme 2 area table
+  areaHTML += '<div class="combined-divider"><span>B</span> ' + label2 + ' <span class="scheme-label">' + (100 - combined.splitPct) + '% of plot = ' + fmtInt(combined.plot2) + ' sq.m</span></div>';
+  areaHTML += renderAreaTable(combined.result2, combined.scheme2);
+
+  // Combined totals
+  areaHTML += `<div class="result-card" style="border-left:4px solid var(--primary);">
+    <h3><span class="card-num">+</span> Combined Area Totals</h3>
+    <table class="calc-table"><thead><tr><th>Component</th><th class="num">Area (sq.m)</th><th class="num">Area (sq.ft)</th></tr></thead><tbody>
+    <tr><td>${label1} Buildable</td><td class="num">${fmt(combined.result1.totalBuildable)}</td><td class="num">${fmt(sqmToSqft(combined.result1.totalBuildable))}</td></tr>
+    <tr><td>${label2} Buildable</td><td class="num">${fmt(combined.result2.totalBuildable)}</td><td class="num">${fmt(sqmToSqft(combined.result2.totalBuildable))}</td></tr>
+    <tr class="total-row"><td><strong>GRAND TOTAL BUILDABLE</strong></td><td class="num"><strong>${fmt(combined.totalBuildable)}</strong></td><td class="num"><strong>${fmt(sqmToSqft(combined.totalBuildable))}</strong></td></tr>
+    </tbody></table></div>`;
+
+  document.getElementById('areaSection').innerHTML = areaHTML;
+
+  // Premium Section - both schemes + clubbing
+  let premHTML = '';
+
+  premHTML += '<div class="combined-divider"><span>A</span> Premiums: ' + label1 + '</div>';
+  premHTML += renderPremiumTable(combined.result1);
+
+  premHTML += '<div class="combined-divider"><span>B</span> Premiums: ' + label2 + '</div>';
+  premHTML += renderPremiumTable(combined.result2);
+
+  // Clubbing premium
+  premHTML += `<div class="result-card clubbing-premium-card">
+    <h3><span class="card-num">C</span> Clubbing Premium (Scheme Combination)</h3>
+    <table class="calc-table"><thead><tr><th>Premium Item</th><th>Formula</th><th class="num">Amount (Rs)</th><th>Regulation</th></tr></thead><tbody>
+    <tr><td>Clubbing Premium (51% of unearned income)</td>
+      <td>51% x 10% of incremental value from combined FSI</td>
+      <td class="num">${fmtCr(combined.clubbingPremium)}</td>
+      <td style="font-size:12px;">DCPR 2034: Payable when combining schemes for FSI benefit</td></tr>
+    <tr class="total-row"><td colspan="2"><strong>GRAND TOTAL ALL PREMIUMS</strong></td>
+      <td class="num"><strong>${fmtCr(combined.totalPremiums)}</strong></td><td></td></tr>
+    </tbody></table>
+    <div class="info-box"><strong>Note:</strong> Clubbing premium is payable 50% at IOA and 50% at CC.
+    Premium amounts based on RRR of Rs ${fmtInt(rrRate)}/sq.m. Actual premiums at prevailing ASR rates.</div>
+  </div>`;
+
+  document.getElementById('premiumSection').innerHTML = premHTML;
+
+  // Timelines - merge both + clubbing
+  let timeHTML = `<div class="result-card timeline-card">
+    <h3><span class="card-num">3</span> Combined Payment Timelines</h3>
+    <table class="calc-table">
+    <thead><tr><th>Payment</th><th>Scheme</th><th>Timing / Stage</th><th>Split</th></tr></thead><tbody>`;
+
+  combined.result1.timelines.forEach(t => {
+    timeHTML += '<tr><td>' + t.payment + '</td><td>' + label1 + '</td><td>' + t.timing + '</td><td>' + t.pct + '</td></tr>';
+  });
+  combined.result2.timelines.forEach(t => {
+    timeHTML += '<tr><td>' + t.payment + '</td><td>' + label2 + '</td><td>' + t.timing + '</td><td>' + t.pct + '</td></tr>';
+  });
+  timeHTML += `<tr class="total-row"><td>Clubbing Premium (51% unearned income)</td><td>Combined</td><td>50% at IOA + 50% at CC</td><td>50/50</td></tr>`;
+  timeHTML += '</tbody></table>';
+  timeHTML += `<div class="note-box"><strong>Key Milestones:</strong><br>
+    <strong>IOA</strong> = Intimation of Approval | <strong>CC</strong> = Commencement Certificate | <strong>OC</strong> = Occupation Certificate<br>
+    For combined schemes, timelines for each component run independently unless a single IOA/CC is obtained.</div></div>`;
+  document.getElementById('timelineSection').innerHTML = timeHTML;
+
+  // Notes - merge both + combined notes
+  let notesHTML = `<div class="result-card">
+    <h3><span class="card-num">4</span> Important Notes & Conditions (Combined)</h3>`;
+  notesHTML += '<h4 style="color:var(--primary);margin:12px 0 6px;">' + label1 + ' Notes:</h4><ul style="padding-left:20px;">';
+  combined.result1.notes.forEach(n => { notesHTML += '<li style="margin-bottom:4px;">' + n + '</li>'; });
+  notesHTML += '</ul>';
+  notesHTML += '<h4 style="color:var(--primary);margin:12px 0 6px;">' + label2 + ' Notes:</h4><ul style="padding-left:20px;">';
+  combined.result2.notes.forEach(n => { notesHTML += '<li style="margin-bottom:4px;">' + n + '</li>'; });
+  notesHTML += '</ul>';
+  notesHTML += '<h4 style="color:var(--highlight);margin:12px 0 6px;">Clubbing / Combination Notes:</h4><ul style="padding-left:20px;">';
+  combined.combinedNotes.forEach(n => { notesHTML += '<li style="margin-bottom:4px;">' + n + '</li>'; });
+  notesHTML += '</ul></div>';
+  document.getElementById('notesSection').innerHTML = notesHTML;
+
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Helper: render area table for one scheme (used in combined view)
+function renderAreaTable(result, scheme) {
+  const schemeInfo = SCHEME_FSI[scheme];
+  let html = `<div class="result-card">
+    <span class="scheme-tag ${scheme}">${schemeInfo.label}</span>
+    <table class="calc-table">
+    <thead><tr><th>Component</th><th>FSI / Rate</th><th>Calculation</th><th class="num">Area (sq.m)</th><th class="num">Area (sq.ft)</th></tr></thead><tbody>`;
+  result.areaRows.forEach(r => {
+    const cls = r.type === 'total' ? 'total-row' : (r.type === 'subtotal' ? 'subtotal-row' : '');
+    html += '<tr class="' + cls + '"><td>' + r.component + '</td><td>' + r.fsi + '</td><td>' + r.calc + '</td><td class="num">' + fmt(r.area) + '</td><td class="num">' + fmt(sqmToSqft(r.area)) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// Helper: render premium table for one scheme (used in combined view)
+function renderPremiumTable(result) {
+  let html = `<div class="result-card premium-card">
+    <table class="calc-table">
+    <thead><tr><th>Premium Item</th><th>Formula</th><th class="num">Amount (Rs)</th><th>Regulation Reference</th></tr></thead><tbody>`;
+  let total = 0;
+  result.premiums.forEach(p => {
+    total += p.amount;
+    html += '<tr><td>' + p.item + '</td><td>' + p.formula + '</td><td class="num">' + fmtCr(p.amount) + '</td><td style="font-size:12px;">' + p.note + '</td></tr>';
+  });
+  html += '<tr class="subtotal-row"><td colspan="2"><strong>Subtotal</strong></td><td class="num"><strong>' + fmtCr(total) + '</strong></td><td></td></tr>';
+  html += '</tbody></table></div>';
+  return html;
 }
 
 // Auto-show/hide fields on load
