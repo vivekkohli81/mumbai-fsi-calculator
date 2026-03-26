@@ -330,6 +330,23 @@ table.calc-table .num { text-align: right; font-variant-numeric: tabular-nums; }
         <span class="hint">Current avg carpet area per tenant (sq.m)</span>
       </div>
 
+      <div class="form-group" id="loadingFactorGroup">
+        <label>Loading Factor (%)</label>
+        <select id="loadingFactor">
+          <option value="0.35">35% (Low-rise, simple layout)</option>
+          <option value="0.40" selected>40% (Standard mid-rise)</option>
+          <option value="0.45">45% (High-rise with lifts/staircases)</option>
+          <option value="custom_lf">Custom %</option>
+        </select>
+        <span class="hint">Carpet → Built-up conversion: walls, passages, lifts, staircases, common areas</span>
+      </div>
+
+      <div class="form-group" id="customLFGroup" style="display:none;">
+        <label>Custom Loading Factor (%)</label>
+        <input type="number" id="customLF" placeholder="e.g. 42" min="10" max="60" value="40">
+        <span class="hint">Typical range: 35-45%</span>
+      </div>
+
       <div class="form-group" id="useTypeGroup">
         <label>9. Predominant Use Type</label>
         <select id="useType">
@@ -617,6 +634,12 @@ document.getElementById('scheme').addEventListener('change', function() {
   const needsTenants = ['sra','cessed','cluster','mhada','ptc'].includes(s);
   document.getElementById('tenantsGroup').style.display = needsTenants ? 'flex' : 'none';
   document.getElementById('tenantAreaGroup').style.display = needsTenants ? 'flex' : 'none';
+  document.getElementById('loadingFactorGroup').style.display = needsTenants ? 'flex' : 'none';
+});
+
+// Loading factor custom toggle
+document.getElementById('loadingFactor').addEventListener('change', function() {
+  document.getElementById('customLFGroup').style.display = this.value === 'custom_lf' ? 'flex' : 'none';
 });
 
 function calculate() {
@@ -629,6 +652,8 @@ function calculate() {
   const ward = wardVal === 'custom' ? (document.getElementById('customLocation').value || 'Custom Location') : wardVal;
   const tenants = parseInt(document.getElementById('tenants').value) || 0;
   const tenantArea = parseFloat(document.getElementById('tenantArea').value) || 25;
+  const lfSelect = document.getElementById('loadingFactor').value;
+  const loadingFactor = lfSelect === 'custom_lf' ? (parseFloat(document.getElementById('customLF').value) || 40) / 100 : parseFloat(lfSelect);
   const useType = document.getElementById('useType').value;
   const compositeType = document.getElementById('compositeType').value;
   const rcRate = parseFloat(document.getElementById('rcRate').value) || 0;
@@ -663,7 +688,8 @@ function calculate() {
 
     const combined = calcCombined(scheme, scheme2, zone, roadWidth, plotArea, rrRate, splitPct, useType, fungiblePct, fungiblePremiumRate, {
       tenants1: tenants, tenantArea1: tenantArea, compositeType1: compositeType, rcRate1: rcRate,
-      tenants2: tenants2, tenantArea2: tenantArea2, compositeType2: compositeType2, rcRate2: rcRate2
+      tenants2: tenants2, tenantArea2: tenantArea2, compositeType2: compositeType2, rcRate2: rcRate2,
+      loadingFactor: loadingFactor
     });
     renderCombinedResults(combined, zone, roadWidth, plotArea, rrRate, ward, useType);
     return;
@@ -673,10 +699,10 @@ function calculate() {
 
   switch(scheme) {
     case 'freehold': result = calcFreehold(fsiData, plotArea, rrRate, fungiblePct, fungiblePremiumRate, useType, zone); break;
-    case 'sra': result = calcSRA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct); break;
-    case 'cessed': result = calcCessed(fsiData, plotArea, rrRate, tenants, tenantArea, compositeType, fungiblePct); break;
-    case 'cluster': result = calcCluster(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate); break;
-    case 'mhada': result = calcMHADA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate); break;
+    case 'sra': result = calcSRA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, loadingFactor); break;
+    case 'cessed': result = calcCessed(fsiData, plotArea, rrRate, tenants, tenantArea, compositeType, fungiblePct, loadingFactor); break;
+    case 'cluster': result = calcCluster(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate, loadingFactor); break;
+    case 'mhada': result = calcMHADA(fsiData, plotArea, rrRate, tenants, tenantArea, zone, fungiblePct, rcRate, loadingFactor); break;
     case 'ptc': result = calcPTC(fsiData, plotArea, rrRate, zone, fungiblePct); break;
     case 'authority': result = calcAuthority(fsiData, plotArea, rrRate, zone, fungiblePct, fungiblePremiumRate, useType); break;
   }
@@ -740,57 +766,84 @@ function calcFreehold(fsi, plot, rr, fungPct, fungPremRate, useType, zone) {
 }
 
 // ====== SRA 33(10) CALCULATION ======
-function calcSRA(fsi, plot, rr, tenants, tenantArea, zone, fungPct) {
+function calcSRA(fsi, plot, rr, tenants, tenantArea, zone, fungPct, loadingFactor) {
+  const lf = loadingFactor || 0.40;
   const maxFSI = 4.00;
-  const rehabArea = tenants * 27.88; // min 300 sqft = 27.88 sqm per tenant
+  const carpetPerTenant = Math.max(tenantArea, 27.88); // min 300 sqft = 27.88 sqm
+  const rehabCarpet = tenants * carpetPerTenant;
+  const rehabBuiltUp = rehabCarpet * (1 + lf); // Built-up = Carpet + Loading (walls, passages, lifts, staircases)
   const saleRatio = SRA_SALE_RATIO[zone] || 1.0;
-  const saleFromRehab = rehabArea * saleRatio;
-  const incentiveFSI = rehabArea * 0.50; // 50% incentive
+  const saleFromRehab = rehabCarpet * saleRatio;
+  const incentiveFSI = rehabCarpet * 0.50; // 50% incentive - part of entitlement, NOT additional
   const baseFSIArea = maxFSI * plot;
-  const totalRehabSale = rehabArea + saleFromRehab;
+  const totalRehabSale = rehabBuiltUp + saleFromRehab;
   const effectiveBase = Math.max(baseFSIArea, totalRehabSale);
-  const fungibleArea = fungPct * effectiveBase;
-  const fungibleFreeRehab = fungPct * rehabArea; // free on rehab
-  const fungiblePaidSale = fungibleArea - fungibleFreeRehab;
+  const fungibleArea = fungPct * rehabBuiltUp; // Fungible on rehab built-up area (free on rehab)
   const totalBuildable = effectiveBase + fungibleArea;
 
+  // Premiums
   const infraCharge = (effectiveBase - fsi.base * plot) * rr * 0.02;
   const corpusFund = tenants * 40000;
-  const fungPrem = Math.max(0, fungiblePaidSale) * rr * 0.60;
-  const relaxPrem = saleFromRehab * rr * 0.025; // 2.5% of ASR for relaxation
+  const saleArea = Math.max(0, effectiveBase - rehabBuiltUp);
+  const fungibleOnSale = fungPct * saleArea;
+  const fungPrem = fungibleOnSale * rr * 0.60;
+  const relaxPrem = saleArea * rr * 0.025;
+  // Additional statutory costs
+  const iodDeposit = plot * rr * 0.005; // ~0.5% of land value as IOD deposit
+  const scrutinyFee = effectiveBase * 50; // approx Rs 50/sq.m scrutiny fees
+  const cfoCharges = effectiveBase * 25; // CFO (Chief Fire Officer) charges approx
+  const moefCharges = plot > 20000 ? plot * rr * 0.002 : 0; // MOEF clearance for large plots
 
   return {
     areaRows: [
-      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} tenants x 27.88 sq.m`, area: rehabArea, type: 'normal' },
-      { component: `Sale Component (${saleRatio}x Rehab)`, fsi: saleRatio, calc: `${saleRatio} x ${fmt(rehabArea)}`, area: saleFromRehab, type: 'normal' },
-      { component: 'Incentive FSI (50% of Rehab)', fsi: '50%', calc: `0.50 x ${fmt(rehabArea)}`, area: incentiveFSI, type: 'normal' },
-      { component: `OR Max FSI (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Rehab Carpet Area (min 27.88 sq.m/tenant)', fsi: '', calc: `${tenants} x ${fmt(carpetPerTenant)} sq.m`, area: rehabCarpet, type: 'normal' },
+      { component: `Loading Factor (${(lf*100).toFixed(0)}%: walls, passages, lifts, stairs)`, fsi: `${(lf*100).toFixed(0)}%`, calc: `${fmt(rehabCarpet)} x ${(lf).toFixed(2)}`, area: rehabCarpet * lf, type: 'normal' },
+      { component: 'Rehab Built-Up Area (Carpet + Loading)', fsi: '', calc: `${fmt(rehabCarpet)} x ${(1+lf).toFixed(2)}`, area: rehabBuiltUp, type: 'subtotal' },
+      { component: `Sale Component (${saleRatio}x Rehab Carpet)`, fsi: saleRatio, calc: `${saleRatio} x ${fmt(rehabCarpet)}`, area: saleFromRehab, type: 'normal' },
+      { component: 'Incentive FSI (50% of Carpet - included in entitlement)', fsi: '50%', calc: `0.50 x ${fmt(rehabCarpet)}`, area: incentiveFSI, type: 'normal' },
+      { component: `Max FSI Entitlement (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
       { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
-      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% of Rehab BUA - FREE)`, fsi: fungPct, calc: `${fungPct} x ${fmt(rehabBuiltUp)}`, area: fungibleArea, type: 'normal' },
       { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
     ],
     premiums: [
       { item: 'Infrastructure Charges (2% of RRR)', formula: `${fmt(effectiveBase - fsi.base * plot)} sq.m x ${fmtInt(rr)} x 2%`, amount: infraCharge, note: 'Reg 33(10): 2% of RRR on BUA above zonal FSI' },
-      { item: 'Corpus Fund (Rs 40,000/tenant)', formula: `${tenants} x Rs 40,000`, amount: corpusFund, note: 'Deposited with SRA per tenant' },
-      { item: 'Fungible FSI Premium (on sale component)', formula: `${fmt(Math.max(0, fungiblePaidSale))} sq.m x ${fmtInt(rr)} x 60%`, amount: fungPrem, note: 'Free on rehab component; 60% of ASR on sale' },
-      { item: 'Relaxation Premium (2.5% of ASR)', formula: `${fmt(saleFromRehab)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'Reg 33(10): 2.5% of ASR or 10% of normal premium' },
+      { item: 'Corpus Fund (Rs 40,000/tenant)', formula: `${tenants} x Rs 40,000`, amount: corpusFund, note: 'Deposited with SRA per tenant (amount as per agreement)' },
+      { item: 'Fungible FSI Premium (on sale component)', formula: `${fmt(fungibleOnSale)} sq.m x ${fmtInt(rr)} x 60%`, amount: fungPrem, note: 'FREE on rehab component; 60% of ASR on sale only' },
+      { item: 'Relaxation Premium (2.5% of ASR)', formula: `${fmt(saleArea)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'Reg 33(10): 2.5% of ASR or 10% of normal premium' },
+      { item: 'IOD Deposit (approx)', formula: `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.5%`, amount: iodDeposit, note: 'Intimation of Disapproval deposit - refundable' },
+      { item: 'Scrutiny & Plan Approval Fees', formula: `${fmt(effectiveBase)} sq.m x Rs 50/sq.m (approx)`, amount: scrutinyFee, note: 'MCGM plan scrutiny, processing fees' },
+      { item: 'CFO Charges (Fire NOC)', formula: `${fmt(effectiveBase)} sq.m x Rs 25/sq.m (approx)`, amount: cfoCharges, note: 'Chief Fire Officer clearance charges' },
+      { item: 'MOEF / Environment Clearance', formula: plot > 20000 ? `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.2%` : 'N/A (plot < 20,000 sq.m)', amount: moefCharges, note: 'Required for plots > 20,000 sq.m' },
     ],
     timelines: [
+      { payment: 'LOI (Letter of Intent) Charges', timing: 'At LOI stage - initial approval from SRA', pct: 'As per SRA' },
+      { payment: 'IOD Deposit', timing: 'At IOD (Intimation of Disapproval) stage', pct: '100%' },
+      { payment: 'Scrutiny & Plan Approval Fees', timing: 'At plan submission to MCGM / SRA', pct: '100%' },
+      { payment: 'CFO / Fire NOC', timing: 'Before CC - Chief Fire Officer clearance', pct: '100%' },
       { payment: 'Corpus Fund (Rs 40,000/tenant)', timing: 'Per CEO SRA schedule; full deposit before last 25% free-sale CC', pct: 'Installments' },
       { payment: 'Infrastructure Charges (2% RRR)', timing: 'Installments per CEO SRA schedule; must complete by end of construction', pct: 'Installments' },
       { payment: 'Land Premium (25% ASR - if Govt land)', timing: 'Installments as prescribed by Govt; remitted within 30 days of recovery', pct: 'Installments' },
       { payment: 'Clubbing Premium (51% unearned income)', timing: '50% at IOA + 50% at CC (if clubbing multiple schemes)', pct: '50/50' },
-      { payment: 'Fungible FSI Premium', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'Fungible FSI Premium (sale component)', timing: 'At Commencement Certificate (CC)', pct: '100%' },
+      { payment: 'MOEF / Environment Clearance', timing: 'Before CC - for plots > 20,000 sq.m', pct: '100%' },
+      { payment: 'HRC (Heritage Conservation) - if applicable', timing: 'Before CC - if heritage structures on/near plot', pct: '100%' },
+      { payment: 'Aviation / Height NOC', timing: 'Before CC - if within airport funnel zone', pct: '100%' },
+      { payment: 'Civic NOCs (Water, Drainage, Road, Tree)', timing: 'Before CC - various MCGM departments', pct: '100%' },
     ],
     notes: [
       'Rehab must complete before free-sale component can be marketed.',
-      'Min carpet area per tenant: 27.88 sq.m (300 sq.ft) under SRA.',
-      '35% fungible FSI on rehabilitation component is FREE of premium.',
-      'Incentive FSI (50-75% of rehab area) is free of premium for rehabilitation.',
+      `Min carpet area per tenant: ${fmt(carpetPerTenant)} sq.m (${fmtInt(sqmToSqft(carpetPerTenant))} sq.ft) under SRA.`,
+      `Loading Factor: ${(lf*100).toFixed(0)}% applied for carpet → built-up conversion (walls, passages, lifts, staircases, common areas).`,
+      `Rehab Built-Up = ${fmt(rehabCarpet)} sq.m carpet x ${(1+lf).toFixed(2)} = ${fmt(rehabBuiltUp)} sq.m (${fmtInt(sqmToSqft(rehabBuiltUp))} sq.ft).`,
+      'Incentive FSI (50% of rehab carpet) is part of overall entitlement, NOT additional FSI above 4.0.',
+      `${fungPct*100}% fungible FSI on rehabilitation built-up area is FREE of premium.`,
+      'Corpus Fund amount depends on agreement terms and CEO SRA schedule.',
       'If on-site FSI cannot be fully consumed, balance available as TDR.',
       'TDR generation: Island City 2.5x, Suburbs 2.0x of surrendered area.',
       'Mandatory: 20% of TDR must be from SRA projects.',
-      'On Govt/Semi-Govt land: additional 25% of ASR as land premium payable.'
+      'On Govt/Semi-Govt land: additional 25% of ASR as land premium payable.',
+      'Additional NOCs: LOI, ADCS, CFO, HRC, MOEF, Aviation, Civic NOCs may be required depending on project specifics.'
     ],
     totalBuildable: totalBuildable,
     effectiveFSI: totalBuildable / plot
@@ -798,47 +851,63 @@ function calcSRA(fsi, plot, rr, tenants, tenantArea, zone, fungPct) {
 }
 
 // ====== CESSED 33(7) CALCULATION ======
-function calcCessed(fsi, plot, rr, tenants, tenantArea, compositeType, fungPct) {
+function calcCessed(fsi, plot, rr, tenants, tenantArea, compositeType, fungPct, loadingFactor) {
+  const lf = loadingFactor || 0.40;
   const maxFSI = 3.00;
   const incentivePct = CESSED_INCENTIVE[compositeType];
   const additionalCarpet = compositeType === '2to5' ? 0.08 : (compositeType === '6plus' ? 0.08 : 0);
-  const rehabArea = tenants * (tenantArea * (1 + additionalCarpet));
-  const incentiveArea = rehabArea * incentivePct;
+  const rehabCarpet = tenants * (tenantArea * (1 + additionalCarpet));
+  const rehabBuiltUp = rehabCarpet * (1 + lf);
+  const incentiveArea = rehabCarpet * incentivePct;
   const baseFSIArea = maxFSI * plot;
-  const effectiveBase = Math.max(baseFSIArea, rehabArea + incentiveArea);
-  const fungibleArea = fungPct * effectiveBase;
+  const effectiveBase = Math.max(baseFSIArea, rehabBuiltUp + incentiveArea);
+  const fungibleArea = fungPct * rehabBuiltUp; // free on rehab built-up
   const totalBuildable = effectiveBase + fungibleArea;
 
-  const premFSICost = Math.max(0, effectiveBase - rehabArea - incentiveArea) * rr * 0.60;
-  const fungPrem = 0; // free on rehab in 33(7)
-  const relaxPrem = (effectiveBase - rehabArea) * rr * 0.025; // 2.5% ASR for relaxation
+  const premFSICost = Math.max(0, effectiveBase - rehabBuiltUp - incentiveArea) * rr * 0.60;
+  const relaxPrem = Math.max(0, effectiveBase - rehabBuiltUp) * rr * 0.025;
+  const iodDeposit = plot * rr * 0.005;
+  const scrutinyFee = effectiveBase * 50;
+  const cfoCharges = effectiveBase * 25;
 
   return {
     areaRows: [
-      { component: 'Rehab Component (existing tenants)', fsi: '', calc: `${tenants} x ${fmt(tenantArea * (1+additionalCarpet))} sq.m`, area: rehabArea, type: 'normal' },
-      { component: `Incentive FSI (${incentivePct*100}% of Rehab)`, fsi: incentivePct, calc: `${incentivePct} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
-      { component: `OR Max FSI (3.0 x plot)`, fsi: 3.0, calc: `3.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Rehab Carpet Area', fsi: '', calc: `${tenants} x ${fmt(tenantArea * (1+additionalCarpet))} sq.m`, area: rehabCarpet, type: 'normal' },
+      { component: `Loading Factor (${(lf*100).toFixed(0)}%: walls, passages, lifts, stairs)`, fsi: `${(lf*100).toFixed(0)}%`, calc: `${fmt(rehabCarpet)} x ${lf.toFixed(2)}`, area: rehabCarpet * lf, type: 'normal' },
+      { component: 'Rehab Built-Up Area (Carpet + Loading)', fsi: '', calc: `${fmt(rehabCarpet)} x ${(1+lf).toFixed(2)}`, area: rehabBuiltUp, type: 'subtotal' },
+      { component: `Incentive FSI (${incentivePct*100}% of Carpet - in entitlement)`, fsi: incentivePct, calc: `${incentivePct} x ${fmt(rehabCarpet)}`, area: incentiveArea, type: 'normal' },
+      { component: `Max FSI Entitlement (3.0 x plot)`, fsi: 3.0, calc: `3.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
       { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
-      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% of Rehab BUA - FREE)`, fsi: fungPct, calc: `${fungPct} x ${fmt(rehabBuiltUp)}`, area: fungibleArea, type: 'normal' },
       { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
     ],
     premiums: [
-      { item: 'Premium FSI (sale component)', formula: `${fmt(Math.max(0, effectiveBase - rehabArea - incentiveArea))} sq.m x ${fmtInt(rr)} x 60%`, amount: premFSICost, note: 'Reg 30: 60% of ASR on additional sale area' },
+      { item: 'Premium FSI (sale component)', formula: `${fmt(Math.max(0, effectiveBase - rehabBuiltUp - incentiveArea))} sq.m x ${fmtInt(rr)} x 60%`, amount: premFSICost, note: 'Reg 30: 60% of ASR on additional sale area' },
       { item: 'Fungible FSI Premium', formula: 'FREE on rehabilitation component', amount: 0, note: 'Reg 33(7): No premium on fungible for rehab' },
-      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(effectiveBase - rehabArea)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'If open space relaxation granted by Commissioner' },
+      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(Math.max(0, effectiveBase - rehabBuiltUp))} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'If open space relaxation granted by Commissioner' },
+      { item: 'IOD Deposit (approx)', formula: `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.5%`, amount: iodDeposit, note: 'Intimation of Disapproval deposit' },
+      { item: 'Scrutiny & Plan Approval Fees', formula: `${fmt(effectiveBase)} sq.m x Rs 50/sq.m`, amount: scrutinyFee, note: 'MCGM plan scrutiny fees' },
+      { item: 'CFO Charges (Fire NOC)', formula: `${fmt(effectiveBase)} sq.m x Rs 25/sq.m`, amount: cfoCharges, note: 'Chief Fire Officer clearance' },
     ],
     timelines: [
+      { payment: 'LOI / IOD Charges', timing: 'At LOI / IOD stage', pct: '100%' },
+      { payment: 'Scrutiny & CFO Fees', timing: 'At plan submission stage', pct: '100%' },
       { payment: 'Premium FSI (60% of ASR)', timing: 'At Commencement Certificate (CC)', pct: '100%' },
       { payment: 'Relaxation Premium', timing: 'At IOA / CC stage', pct: '100%' },
       { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+      { payment: 'HRC (Heritage) - if applicable', timing: 'Before CC - heritage structures', pct: '100%' },
+      { payment: 'Civic NOCs (Water, Drainage, Road, Tree)', timing: 'Before CC', pct: '100%' },
     ],
     notes: [
       'Applies exclusively to cessed buildings in Island City existing before 30/09/1969.',
-      `Composite (${compositeType}): Incentive at ${incentivePct*100}% of rehab area.` + (additionalCarpet > 0 ? ` Tenants get +8% additional carpet area.` : ''),
-      'FSI = 3.00 OR rehab + incentive, whichever is more.',
-      '35% free fungible FSI on rehabilitation component (no premium).',
+      `Composite (${compositeType}): Incentive at ${incentivePct*100}% of rehab carpet area.` + (additionalCarpet > 0 ? ` Tenants get +8% additional carpet area.` : ''),
+      `Loading Factor: ${(lf*100).toFixed(0)}% applied for carpet → built-up (walls, passages, lifts, staircases).`,
+      `Rehab Built-Up = ${fmt(rehabCarpet)} carpet x ${(1+lf).toFixed(2)} = ${fmt(rehabBuiltUp)} sq.m.`,
+      'FSI = 3.00 OR rehab built-up + incentive, whichever is more.',
+      `${fungPct*100}% free fungible FSI on rehabilitation built-up (no premium).`,
       'Rehab must complete before free-sale component can be marketed.',
-      'For \'A\' category (pre-1940) heritage buildings: max FSI may be 2.50.'
+      'For \'A\' category (pre-1940) heritage buildings: max FSI may be 2.50.',
+      'Additional NOCs: LOI, ADCS, CFO, HRC, MOEF, Aviation, Civic NOCs as applicable.'
     ],
     totalBuildable: totalBuildable,
     effectiveFSI: totalBuildable / plot
@@ -846,14 +915,16 @@ function calcCessed(fsi, plot, rr, tenants, tenantArea, compositeType, fungPct) 
 }
 
 // ====== CLUSTER 33(9) CALCULATION ======
-function calcCluster(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) {
+function calcCluster(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate, loadingFactor) {
+  const lf = loadingFactor || 0.40;
   const maxFSI = 4.00;
   const minArea = zone === 'island' ? 4000 : 6000;
   const baseFSIArea = maxFSI * plot;
-  const rehabArea = tenants * tenantArea;
+  const rehabCarpet = tenants * tenantArea;
+  const rehabBuiltUp = rehabCarpet * (1 + lf);
 
   // Basic Ratio for incentive
-  let incentivePct = 0.75; // default
+  let incentivePct = 0.75;
   if (rcRate > 0 && rr > 0) {
     const basicRatio = rr / rcRate;
     if (basicRatio > 6) incentivePct = plot >= 10000 ? 0.70 : (plot >= 5000 ? 0.65 : (plot >= 1000 ? 0.60 : 0.55));
@@ -861,42 +932,58 @@ function calcCluster(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) 
     else if (basicRatio > 2) incentivePct = plot >= 10000 ? 0.90 : (plot >= 5000 ? 0.85 : (plot >= 1000 ? 0.80 : 0.75));
     else incentivePct = plot >= 10000 ? 1.00 : (plot >= 5000 ? 0.95 : (plot >= 1000 ? 0.90 : 0.85));
   }
-  const incentiveArea = rehabArea * incentivePct;
-  const effectiveBase = Math.max(baseFSIArea, rehabArea + incentiveArea);
-  const fungibleArea = fungPct * effectiveBase;
+  const incentiveArea = rehabCarpet * incentivePct;
+  const effectiveBase = Math.max(baseFSIArea, rehabBuiltUp + incentiveArea);
+  const fungibleArea = fungPct * rehabBuiltUp; // free on rehab built-up
   const totalBuildable = effectiveBase + fungibleArea;
 
   const devCess = Math.max((effectiveBase - fsi.base * plot) * 5000, (effectiveBase - fsi.base * plot) * rr * 0.07);
-  const heritageCess = 0; // only if heritage structures present
-  const relaxPrem = (effectiveBase - rehabArea) * rr * 0.025;
+  const relaxPrem = Math.max(0, effectiveBase - rehabBuiltUp) * rr * 0.025;
+  const iodDeposit = plot * rr * 0.005;
+  const scrutinyFee = effectiveBase * 50;
+  const cfoCharges = effectiveBase * 25;
+  const moefCharges = plot > 20000 ? plot * rr * 0.002 : 0;
 
   return {
     areaRows: [
-      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabArea, type: 'normal' },
-      { component: `Incentive FSI (${(incentivePct*100).toFixed(0)}% of Rehab - per Basic Ratio)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
-      { component: `OR Max FSI (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
+      { component: 'Rehab Carpet Area', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabCarpet, type: 'normal' },
+      { component: `Loading Factor (${(lf*100).toFixed(0)}%: walls, passages, lifts, stairs)`, fsi: `${(lf*100).toFixed(0)}%`, calc: `${fmt(rehabCarpet)} x ${lf.toFixed(2)}`, area: rehabCarpet * lf, type: 'normal' },
+      { component: 'Rehab Built-Up Area (Carpet + Loading)', fsi: '', calc: `${fmt(rehabCarpet)} x ${(1+lf).toFixed(2)}`, area: rehabBuiltUp, type: 'subtotal' },
+      { component: `Incentive FSI (${(incentivePct*100).toFixed(0)}% of Carpet - in entitlement)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabCarpet)}`, area: incentiveArea, type: 'normal' },
+      { component: `Max FSI Entitlement (4.0 x plot)`, fsi: 4.0, calc: `4.0 x ${fmtInt(plot)}`, area: baseFSIArea, type: 'normal' },
       { component: 'Effective Base (whichever is greater)', fsi: '', calc: '', area: effectiveBase, type: 'subtotal' },
-      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% of Rehab BUA - FREE)`, fsi: fungPct, calc: `${fungPct} x ${fmt(rehabBuiltUp)}`, area: fungibleArea, type: 'normal' },
       { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
     ],
     premiums: [
-      { item: 'Development Cess (100% of Dev Charge, min Rs 5,000/sq.m)', formula: `${fmt(effectiveBase - fsi.base * plot)} sq.m x max(Rs 5,000, 7% ASR)`, amount: devCess, note: 'Reg 33(9): On BUA above zonal FSI' },
+      { item: 'Development Cess (100% DC, min Rs 5,000/sq.m)', formula: `${fmt(effectiveBase - fsi.base * plot)} sq.m x max(Rs 5,000, 7% ASR)`, amount: devCess, note: 'Reg 33(9): On BUA above zonal FSI' },
       { item: 'Fungible FSI Premium', formula: 'FREE on rehab component (HPC approved)', amount: 0, note: 'No premium on fungible for rehab under 33(9)' },
-      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(effectiveBase - rehabArea)} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'For open space relaxation in sale component' },
+      { item: 'Relaxation Premium (2.5% ASR)', formula: `${fmt(Math.max(0, effectiveBase - rehabBuiltUp))} sq.m x ${fmtInt(rr)} x 2.5%`, amount: relaxPrem, note: 'For open space relaxation in sale component' },
+      { item: 'IOD Deposit (approx)', formula: `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.5%`, amount: iodDeposit, note: 'Intimation of Disapproval deposit' },
+      { item: 'Scrutiny & Plan Approval Fees', formula: `${fmt(effectiveBase)} sq.m x Rs 50/sq.m`, amount: scrutinyFee, note: 'MCGM plan scrutiny fees' },
+      { item: 'CFO Charges (Fire NOC)', formula: `${fmt(effectiveBase)} sq.m x Rs 25/sq.m`, amount: cfoCharges, note: 'Chief Fire Officer clearance' },
+      { item: 'MOEF / Environment Clearance', formula: plot > 20000 ? `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.2%` : 'N/A (plot < 20,000 sq.m)', amount: moefCharges, note: 'Required for plots > 20,000 sq.m' },
     ],
     timelines: [
+      { payment: 'LOI / IOD Charges', timing: 'At LOI / IOD stage', pct: '100%' },
+      { payment: 'Scrutiny & CFO Fees', timing: 'At plan submission stage', pct: '100%' },
       { payment: 'Development Cess (100% DC, min Rs 5,000/sq.m)', timing: 'Per schedule laid down by Commissioner, MCGM', pct: 'Installments' },
       { payment: 'Relaxation Premium', timing: 'At IOA / CC stage', pct: '100%' },
       { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+      { payment: 'MOEF / Environment Clearance', timing: 'Before CC - for plots > 20,000 sq.m', pct: '100%' },
+      { payment: 'HRC (Heritage) - if applicable', timing: 'Before CC - for heritage structures', pct: '100%' },
+      { payment: 'Aviation / Height NOC', timing: 'Before CC - if in airport funnel zone', pct: '100%' },
+      { payment: 'Civic NOCs (Water, Drainage, Road, Tree)', timing: 'Before CC', pct: '100%' },
     ],
     notes: [
       `Minimum cluster area: ${fmtInt(minArea)} sq.m for ${zone === 'island' ? 'Island City' : 'Suburbs'}.` + (plot < minArea ? ' WARNING: Your plot may be below minimum.' : ''),
+      `Loading Factor: ${(lf*100).toFixed(0)}% applied (carpet → built-up). Rehab BUA = ${fmt(rehabBuiltUp)} sq.m.`,
       'Consent: 51% irrevocable (reduced from 70% under DCPR 2034).',
-      'No premium on fungible FSI for rehab component approved by HPC.',
+      'Incentive FSI is part of entitlement, not additional above 4.0 FSI.',
+      'No premium on fungible FSI for rehab built-up approved by HPC.',
       'Incentive based on Basic Ratio (LR/RC): ' + (rcRate > 0 ? `LR=${fmtInt(rr)}, RC=${fmtInt(rcRate)}, Ratio=${(rr/rcRate).toFixed(2)}, Incentive=${(incentivePct*100).toFixed(0)}%` : 'Enter RC rate for exact calculation.'),
       'Heritage Cess: 5% of ASR on BUA of Heritage structures (Grade I & II) - not included above.',
-      'TDR can be used to meet FSI requirements.',
-      'Open spaces & amenities per DCPR norms mandatory.'
+      'Additional NOCs: LOI, ADCS, CFO, HRC, MOEF, Aviation, Civic NOCs as applicable.'
     ],
     totalBuildable: totalBuildable,
     effectiveFSI: totalBuildable / plot
@@ -904,9 +991,11 @@ function calcCluster(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) 
 }
 
 // ====== MHADA 33(5) CALCULATION ======
-function calcMHADA(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) {
+function calcMHADA(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate, loadingFactor) {
+  const lf = loadingFactor || 0.40;
   const maxFSI = 4.00;
-  const rehabArea = tenants * tenantArea;
+  const rehabCarpet = tenants * tenantArea;
+  const rehabBuiltUp = rehabCarpet * (1 + lf);
   let basicRatio = 2.0;
   if (rcRate > 0 && rr > 0) basicRatio = rr / rcRate;
 
@@ -916,46 +1005,61 @@ function calcMHADA(fsi, plot, rr, tenants, tenantArea, zone, fungPct, rcRate) {
   else if (basicRatio > 2) incentivePct = 0.80;
   else incentivePct = 0.90;
 
-  const incentiveArea = rehabArea * incentivePct;
-  const rehabPlusIncentive = rehabArea + incentiveArea;
+  const incentiveArea = rehabCarpet * incentivePct;
+  const rehabPlusIncentive = rehabBuiltUp + incentiveArea;
   const baseFSIArea = maxFSI * plot;
   const balanceFSI = Math.max(0, baseFSIArea - rehabPlusIncentive);
   const mhadaShare = balanceFSI * 0.50;
   const devShare = balanceFSI * 0.50;
   const effectiveBase = baseFSIArea;
-  const fungibleArea = fungPct * effectiveBase;
+  const fungibleArea = fungPct * rehabBuiltUp; // free on rehab built-up
   const totalBuildable = effectiveBase + fungibleArea;
 
   const relaxPrem = Math.max(devShare * rr * 0.0625, devShare * rr * 0.25 * 0.60);
-  const fungPrem = 0; // free on rehab
+  const iodDeposit = plot * rr * 0.005;
+  const scrutinyFee = effectiveBase * 50;
+  const cfoCharges = effectiveBase * 25;
 
   return {
     areaRows: [
-      { component: 'Rehabilitation Component', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabArea, type: 'normal' },
-      { component: `Incentive (${(incentivePct*100).toFixed(0)}% per Basic Ratio)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabArea)}`, area: incentiveArea, type: 'normal' },
-      { component: 'Rehab + Incentive Subtotal', fsi: '', calc: '', area: rehabPlusIncentive, type: 'subtotal' },
-      { component: 'Balance FSI (4.0 - Rehab - Incentive)', fsi: '', calc: `${fmt(baseFSIArea)} - ${fmt(rehabPlusIncentive)}`, area: balanceFSI, type: 'normal' },
+      { component: 'Rehab Carpet Area', fsi: '', calc: `${tenants} x ${fmt(tenantArea)} sq.m`, area: rehabCarpet, type: 'normal' },
+      { component: `Loading Factor (${(lf*100).toFixed(0)}%: walls, passages, lifts, stairs)`, fsi: `${(lf*100).toFixed(0)}%`, calc: `${fmt(rehabCarpet)} x ${lf.toFixed(2)}`, area: rehabCarpet * lf, type: 'normal' },
+      { component: 'Rehab Built-Up Area (Carpet + Loading)', fsi: '', calc: `${fmt(rehabCarpet)} x ${(1+lf).toFixed(2)}`, area: rehabBuiltUp, type: 'subtotal' },
+      { component: `Incentive (${(incentivePct*100).toFixed(0)}% of Carpet - in entitlement)`, fsi: incentivePct, calc: `${incentivePct.toFixed(2)} x ${fmt(rehabCarpet)}`, area: incentiveArea, type: 'normal' },
+      { component: 'Rehab BUA + Incentive Subtotal', fsi: '', calc: '', area: rehabPlusIncentive, type: 'subtotal' },
+      { component: 'Balance FSI (4.0 - Rehab BUA - Incentive)', fsi: '', calc: `${fmt(baseFSIArea)} - ${fmt(rehabPlusIncentive)}`, area: balanceFSI, type: 'normal' },
       { component: 'MHADA Share (~50% of balance)', fsi: '', calc: `50% x ${fmt(balanceFSI)}`, area: mhadaShare, type: 'normal' },
       { component: 'Developer Share (~50% of balance)', fsi: '', calc: `50% x ${fmt(balanceFSI)}`, area: devShare, type: 'normal' },
-      { component: `Fungible FSI (${fungPct*100}% - free on rehab)`, fsi: fungPct, calc: `${fungPct} x ${fmt(effectiveBase)}`, area: fungibleArea, type: 'normal' },
+      { component: `Fungible FSI (${fungPct*100}% of Rehab BUA - FREE)`, fsi: fungPct, calc: `${fungPct} x ${fmt(rehabBuiltUp)}`, area: fungibleArea, type: 'normal' },
       { component: 'TOTAL BUILDABLE AREA', fsi: '', calc: '', area: totalBuildable, type: 'total' }
     ],
     premiums: [
       { item: 'Relaxation Premium (25% of normal OR 6.25% ASR)', formula: `${fmt(devShare)} sq.m x max(6.25% ASR, 25% of 60% ASR)`, amount: relaxPrem, note: 'Reg 33(5): whichever is more' },
-      { item: 'Fungible FSI Premium', formula: 'FREE - no premium on rehab & existing BUA', amount: 0, note: 'Reg 33(5): No premium on fungible for MHADA redevelopment' },
+      { item: 'Fungible FSI Premium', formula: 'FREE - no premium on rehab built-up', amount: 0, note: 'Reg 33(5): No premium on fungible for MHADA redevelopment' },
+      { item: 'IOD Deposit (approx)', formula: `${fmtInt(plot)} sq.m x ${fmtInt(rr)} x 0.5%`, amount: iodDeposit, note: 'Intimation of Disapproval deposit' },
+      { item: 'Scrutiny & Plan Approval Fees', formula: `${fmt(effectiveBase)} sq.m x Rs 50/sq.m`, amount: scrutinyFee, note: 'MCGM plan scrutiny fees' },
+      { item: 'CFO Charges (Fire NOC)', formula: `${fmt(effectiveBase)} sq.m x Rs 25/sq.m`, amount: cfoCharges, note: 'Chief Fire Officer clearance' },
     ],
     timelines: [
+      { payment: 'LOI / IOD Charges', timing: 'At LOI / IOD stage', pct: '100%' },
+      { payment: 'Scrutiny & CFO Fees', timing: 'At plan submission stage', pct: '100%' },
       { payment: 'Relaxation Premium', timing: 'At Commencement Certificate (CC)', pct: '100%' },
       { payment: 'MHADA Share (built area)', timing: 'Developer hands over MHADA share free of cost upon completion', pct: 'At OC' },
       { payment: 'Development Charges', timing: 'At Building Permission / CC stage', pct: '100%' },
+      { payment: 'HRC (Heritage) - if applicable', timing: 'Before CC', pct: '100%' },
+      { payment: 'Aviation / Height NOC', timing: 'Before CC - if in airport funnel zone', pct: '100%' },
+      { payment: 'Civic NOCs (Water, Drainage, Road, Tree)', timing: 'Before CC', pct: '100%' },
     ],
     notes: [
       'Basic Ratio = LR/RC: ' + (rcRate > 0 ? `${fmtInt(rr)} / ${fmtInt(rcRate)} = ${basicRatio.toFixed(2)}` : 'Enter RC rate for exact calculation.'),
+      `Loading Factor: ${(lf*100).toFixed(0)}% applied (carpet → built-up). Rehab BUA = ${fmt(rehabBuiltUp)} sq.m.`,
+      'Incentive FSI is part of entitlement, not additional above 4.0 FSI.',
       'Sharing ratio between MHADA and Developer depends on Basic Ratio.',
       'Developer must hand over MHADA\'s share free of cost.',
-      'No premium on fungible FSI for rehab component.',
+      'No premium on fungible FSI for rehab built-up area.',
       'Rehab must complete before free-sale component.',
-      'If FSI can\'t be fully utilized on-site (height/fire restrictions), balance available as TDR.'
+      'If FSI can\'t be fully utilized on-site (height/fire restrictions), balance available as TDR.',
+      'Additional NOCs: LOI, ADCS, CFO, HRC, MOEF, Aviation, Civic NOCs as applicable.'
     ],
     totalBuildable: totalBuildable,
     effectiveFSI: totalBuildable / plot
@@ -1296,8 +1400,9 @@ function calcCombined(scheme1, scheme2, zone, roadWidth, plotArea, rrRate, split
   const plot2 = plotArea * (100 - splitPct) / 100;
 
   // Calculate each scheme on its portion
-  const result1 = calcScheme(scheme1, fsiData, plot1, rrRate, params.tenants1, params.tenantArea1, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType1, params.rcRate1);
-  const result2 = calcScheme(scheme2, fsiData, plot2, rrRate, params.tenants2, params.tenantArea2, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType2, params.rcRate2);
+  const lf = params.loadingFactor || 0.40;
+  const result1 = calcScheme(scheme1, fsiData, plot1, rrRate, params.tenants1, params.tenantArea1, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType1, params.rcRate1, lf);
+  const result2 = calcScheme(scheme2, fsiData, plot2, rrRate, params.tenants2, params.tenantArea2, zone, fungiblePct, fungiblePremiumRate, useType, params.compositeType2, params.rcRate2, lf);
 
   // Clubbing Premium: 51% of unearned income on the combined development
   // Unearned income = incremental market value from higher FSI clubbing
@@ -1337,13 +1442,14 @@ function calcCombined(scheme1, scheme2, zone, roadWidth, plotArea, rrRate, split
 }
 
 // Helper: dispatch to the right calc function by scheme name
-function calcScheme(scheme, fsiData, plot, rr, tenants, tenantArea, zone, fungPct, fungPremRate, useType, compositeType, rcRate) {
+function calcScheme(scheme, fsiData, plot, rr, tenants, tenantArea, zone, fungPct, fungPremRate, useType, compositeType, rcRate, loadingFactor) {
+  const lf = loadingFactor || 0.40;
   switch(scheme) {
     case 'freehold': return calcFreehold(fsiData, plot, rr, fungPct, fungPremRate, useType, zone);
-    case 'sra': return calcSRA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct);
-    case 'cessed': return calcCessed(fsiData, plot, rr, tenants, tenantArea, compositeType, fungPct);
-    case 'cluster': return calcCluster(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate);
-    case 'mhada': return calcMHADA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate);
+    case 'sra': return calcSRA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, lf);
+    case 'cessed': return calcCessed(fsiData, plot, rr, tenants, tenantArea, compositeType, fungPct, lf);
+    case 'cluster': return calcCluster(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate, lf);
+    case 'mhada': return calcMHADA(fsiData, plot, rr, tenants, tenantArea, zone, fungPct, rcRate, lf);
     case 'ptc': return calcPTC(fsiData, plot, rr, zone, fungPct);
     case 'authority': return calcAuthority(fsiData, plot, rr, zone, fungPct, fungPremRate, useType);
     default: return calcFreehold(fsiData, plot, rr, fungPct, fungPremRate, useType, zone);
